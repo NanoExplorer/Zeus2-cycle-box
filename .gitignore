@@ -102,3 +102,19 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#heat switch log files
+Index_Logs/
+
+#c3 source code
+c3/c3-0.6.8/
+c3/API.md
+c3/CHANGES.md
+c3/README.md
+c3/d3.js
+
+#Irrelevant things
+old_tests/heatwitch_automatic.py
+old_tests/wsgi.py
+prank.py
+settings_mongodb_sample.json
