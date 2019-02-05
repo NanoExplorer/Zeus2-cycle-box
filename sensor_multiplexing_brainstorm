@@ -1,0 +1,9 @@
+We have a list of sensors to read out.
+ 1. We could read out the next sensor in the list, keeping track of the last index of that list that was read. so if the list is [1,2,3], last time we read index 0, next time we'll read index 1, and if the index we want to read is > than length, we start over.
+
+ What happens if we read out sensor index 2 (sensor 3) and then someone checked the box to read out sensor 0?
+ We'd read sensor 3 twice in a row. But we would know that we did that. 
+
+ 2. We could store the last sensor read, and figure out what the next one to read should be. 
+
+ 

@@ -1,0 +1,40 @@
+how to communicate end of auto cycle?
+a) don't. the server knows when the auto cycle is over, and the user will still have to uncheck the "auto cycle armed" box.
+    Or we don't have to display current auto cycle status, just display a "go" button that shoves auto cycle settings. Then the "armed" field of 
+    the auto cycle settings becomes useless because it's always armed. No, even better, give the user a chance to arm and disarm (i.e. keep that field)
+b) Upload a new thng into the the settings database. Then design the server well enough that there aren't any problems? It will have to take the update and 
+    give it to the js clients, and the js clients will have to listen for settings changes...Maybe they need to do that anyway? Nah, probably need to restrict
+    it so that only one person can access the settings panel at a time anyway.
+c) make a notifier database, or upload it in to the "data" database, so that communication happening one way stays in one db and other way other db.
+
+All right, I think I need to bundle the "auto cycle active" status to the other binary outputs. "active" can be = armed and not finished. Then to the user it appears that it is not armed (because it's finished) even though the settings db will display "armed". We might be able to put some fancy behavior in too that fixes the "armed" field in the settings too, but that isn't high priority if everything goes to plan.
+
+
+
+Probably just make it so that each document only contains references to sensors that were read out on that time step. Then when querying we can deal with that.
+
+{time:
+ temperatures:{ GRT0:
+                GRT4:
+                2W3:
+                4W1: }
+ Magcurr:
+ Magvol:
+ quench:False # hopefully always
+ cycleboxlocal:
+ setpointreached:
+ magnetboxmanual:
+ }
+
+{time:
+ temperatures:{ GRT1:
+                GRT5:
+                2W6:
+                4W2: }
+ Magcurr:
+ Magvol:
+ quench:False # hopefully always
+ cycleboxlocal:
+ setpointreached:
+ magnetboxmanual:
+ }

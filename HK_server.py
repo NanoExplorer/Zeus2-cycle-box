@@ -1,0 +1,621 @@
+#mmmm m     mmmmmmmm m    m  mmmm  mm   m         mmmm    m    m
+#   "# "m m"    #    #    # m"  "m #"m  #        "   "#   #    #
+#mmm#"  "#"     #    #mmmm# #    # # #m #            m"   #    #
+#        #      #    #    # #    # #  # #          m"
+#        #      #    #    #  #mm#  #   ##        m#mmmm   #    #
+from __future__ import division
+import numpy as np
+from datetime import datetime, timedelta
+import Queue
+import copy
+import sys
+import signal
+import traceback
+from database import SettingsWatcherThread, DatabaseUploaderThread
+from labjack import LabJackController
+from scipy.interpolate import interp1d
+from pid import PID 
+import subprocess
+
+
+QUEUE_TIMEOUT=30 #Change to None in production.
+#If this is a number, then there will be polling going on.
+#If it's None, we could have a hard time exiting if there's an error because some
+#threads may refuse to die. Which shouldn't be an issue if we decide this program is mature
+
+"""
+
+I'm using threads because this program does an awful lot of IO.
+The two database threads and the labjack thread are almost constantly just waiting around,
+and the only place that any serious calculations occur is in the logicclass.
+
+TODO:
+get digital inputs from the labjack to the database too though they're not v. important.
+finish auto cycle
+  *heat switch integration (CHECK)
+  *exiting automation gracefully in preparation for servoing and subsequently next auto cycle.
+"""
+
+
+SENSORS_MAP={'AIN4': '4WIRE',
+'AIN6': '2WIRE',
+'AIN0': 'GRT0-3',
+'AIN2': 'GRT4-7',
+'AIN8': 'Voltage',
+'AIN10': 'Current'}
+
+class LogicClass():#threading.Thread): Logic Thread is now going to run in the main thread
+    """LogicThread takes care of the "logic" of running the cyclebox.
+
+    It has the following jobs:
+    pass a magnet current set point to the labjackcontroller
+    pass a magnet ramp rate to the ljc
+        By extension to these two it will do things like run the pid loop (and auto cycle?)
+    tell the ljc which sensors to read (i.e. provide digital outputs to the ljc)
+        So this object controls switching between the sensors that are on the same card
+        that you want to read.
+    decide whether to throw out data from a sensor because t<t_settling
+    pass data to database uploader
+    get data from settings downloader
+    go from voltage to temperature via interpolated calibration data.
+    """
+    def __init__(self,lj):
+        #threading.Thread.__init__(self)
+        self.keepGoing = True
+        self.lj=lj
+        self.sensorsReadingNow = 0 #0th sensor in every list of readout cards
+        self.timeLastFastRead =datetime.now()
+        self.timeLastSlowRead =datetime.now()
+        self.dbuploader = DatabaseUploaderThread()
+        self.dbuploader.setDaemon(True)
+        self.dbuploader.start()
+        self.settings = SettingsWatcherThread()
+        self.settings.setDaemon(True)
+        self.lastAutoCycleStatus={}
+        self.settings.start()
+        self.interp = Interpolators()
+        #The first element in these is whether to ignore that card. (boolean)
+        #The second element is whether that card should be reading in fast mode. (boolean)
+        #The third element is the last time that card's mux was changed. (datetime) (ignored for magnet sensors)
+        self.sensorsFast={'GRT0-3': False,
+                          'GRT4-7': False,
+                          '2WIRE' : False,
+                          '4WIRE' : False,
+                          'Voltage':True,
+                          'Current':True
+        }
+        self.sensorsIgnore={'GRT0-3':False,
+                          'GRT4-7':  False,
+                          '2WIRE' :  False,
+                          '4WIRE' :  False,
+                          'Voltage': False,
+                          'Current': False
+        }
+        self.sensorsLast={'GRT0-3': 0,
+                          'GRT4-7': 0,
+                          '2WIRE' : 0,
+                          '4WIRE' : 0,
+                          'Voltage':0,
+                          'Current':0
+        }
+        self.sensorsTime={'GRT0-3': datetime.now(),
+                          'GRT4-7': datetime.now(),
+                          '2WIRE' : datetime.now(),
+                          '4WIRE' : datetime.now(),
+                          'Voltage':datetime.now(),
+                          'Current':datetime.now()
+        }
+        self.numSlowCards=4
+        self.slowValues = {}
+        self.autoCycler = AutoCycler()
+        self.current=0
+        #I have not made locks for any of the LogicClass's variables
+        #They should not be accessed outside of the LogicClass.
+        #Instead, the LogicClass should modify the variables of other threads and pay
+        #attention to their locks.
+
+
+        #The labjack thread has not started yet, so we might as well initialize its settings for it,
+        #We have already grabbed the most recent settings from the database, which protects us if
+        #this program crashes and is restarted - i.e., the first thing we write to the labjack should
+        #be the same as the last thing we wrote to the labjack. 
+        #TODO: UNLESS WE WERE IN AUTO CYCLE. POSSIBLE FIX: push servo/cycle info to thermometry and read it here
+
+        with self.settings.settingsLock:
+            servoMode=self.settings.settings["magnet"]["servo_mode"]
+            pids=self.settings.settings["pid"]
+            self.pid = PID(P=pids['p'],I=pids['i'],D=pids['d'],cap=pids['max_current'])
+            self.pid.setWindup(pids['i_windup_guard'])
+            self.pid.SetPoint = pids['temp_set_point']
+
+        self.lj.servoMode=servoMode #atomic operation doesn't need lock
+
+    def run(self):
+        with self.settings.settingsLock:
+            self.next_sensor(self.settings.settings) #set up sensors for the first time
+        while self.keepGoing:
+            #print("updating")
+            self.update()
+
+    def stop(self):
+        self.keepGoing = False
+        self.lj.keepGoing=False
+        self.dbuploader.keepGoing=False
+        self.settings.keepGoing=False
+
+    # def update_autocycle(self, cycleSettings,servo):
+    #     return self.autoCycler.update(cycleSettings,servo)
+    # why did this method even exist...?
+
+    def do_pid_step(self,pids,temperature):
+        #their interface doesn't make 100% sense for my use case.
+        #it might've been better to just import their update method
+        #into here, but whatever. I have to do less work this way.
+        self.pid.setKp(pids['p'])
+        self.pid.setKi(pids['i'])
+        self.pid.setKd(pids['d'])
+        self.pid.setWindup(pids['i_windup_guard'])
+        self.pid.output_cap=pids['max_current']
+        self.pid.SetPoint = pids['temp_set_point']
+
+        self.pid.update(temperature)
+        print "{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}".format(self.pid.output,temperature,self.pid.SetPoint,self.pid.PTerm,self.pid.Ki*self.pid.ITerm,self.pid.Kd * self.pid.DTerm)
+        return(self.pid.output,pids['ramp_rate'])
+
+
+    def update_magnet(self,settings,temperature=None):
+        """This communicates the magnet set point and ramprate to the lj controls."""
+
+        
+        #The autocycler only gets updated when it's running, so we have to detect the start of a new cycle here.
+        #I.E. cycle finishes, user requests new cycle, 
+        onSameCycle=self.autoCycler.cycleID==settings['cycle']['cycle_ID']
+
+        #If cycle is not armed, we must not follow this conditional branch.
+        #If cycle is finished, we must not follow this branch unless a new cycle has been started. I.E. when finished is true but onsamecycle is not, the second 
+        #part of this conditional is true.
+        if settings["cycle"]["armed"] and not (self.autoCycler.done and onSameCycle):
+            current,ramprate,servoMode,status = self.autoCycler.update(settings["cycle"],self.lj.servoMode)
+            self.switch_servo_cycle(servoMode)
+            if self.lastAutoCycleStatus != status:
+                self.lastAutoCycleStatus = status
+                self.dbuploader.q.put_nowait({'auto_cycle_status':status})
+        elif settings["magnet"]["usePID"]:
+            self.switch_servo_cycle(True)
+            assert(temperature is not None)
+            current,ramprate = self.do_pid_step(settings['pid'],temperature)
+        else:
+            self.switch_servo_cycle(settings['magnet']['servo_mode'])
+            current = settings["magnet"]["setpoint"]
+            ramprate = settings["magnet"]["ramprate"]
+        self.lj.currentRamprate=ramprate
+        self.lj.currentSetpoint=current
+
+    def switch_servo_cycle(self,new_mode):
+        """
+        It feels weird to me to have this method here instead of in the labjack
+        controller interface. However, when I tried to move it I remembered that 
+        the labjack controller interface doesn't actually know the values of any
+        of the voltages that it's reading in, so this needs to stay in logic.
+        """
+        if new_mode != self.lj.servoMode:
+            if self.current < 0.05:
+                self.lj.servoMode = new_mode
+
+    def next_sensor(self,settings):
+        """Decide which sensor needs to be read out next, and tell that to the lj
+
+        This is where the brains of the multiplexing occur. The method is as follows:
+        "slow" readout cards are the ones that are reading multiple sensors on the same
+        card, and "fast" readout cards are only reading one sensor. Every time the
+        next_sensor function is called, it will cycle to the next sensor on the list
+        for that readout card.
+        """
+        toRead = {}
+        self.numSlowCards=0
+        for name,sensors in settings["sensors"]['read'].iteritems():
+            #print(sensors)
+            nsensors = len(sensors)
+            if nsensors == 0:
+                toRead[name]=None #sensor is off
+
+            elif nsensors == 1:
+                toRead[name]=sensors[0] #sensor is in fast mode
+
+            elif self.sensorsReadingNow >= nsensors:
+                toRead[name]=sensors[0] #sensor will be ignored b/c all sensors on that 
+                #card that we want  to read have already been read.
+
+            else:
+                toRead[name] = sensors[self.sensorsReadingNow]
+                self.numSlowCards+=1
+
+            if self.sensorsLast[name] != toRead[name]:
+                self.sensorsTime[name]=datetime.now()
+
+            self.sensorsFast[name]  = (nsensors==1)
+            self.sensorsIgnore[name]= (nsensors == 0 or nsensors<=self.sensorsReadingNow)
+            self.sensorsLast[name]  = toRead[name]
+
+        with self.lj.sensorsLock:
+            self.lj.read0to3 = toRead["GRT0-3"]
+            self.lj.read4to7 = toRead["GRT4-7"]
+            self.lj.read2wire = toRead["2WIRE"]
+            self.lj.read4wire = toRead["4WIRE"]
+        self.sensorsReadingNow+= 1
+
+    def update(self):
+        """High-level control flow
+
+        This update function calls the other functions in this class and makes
+        sure that the housekeeping is going smoothly.
+        """
+        try:
+            #lj.data is a queue. Grab latest data from it and  block until it's available
+            ljdata = self.lj.data.get(True,QUEUE_TIMEOUT)
+            #Apply lj device calibration
+            r = self.lj.device.processStreamData(ljdata['result'])
+            #Grab settings from database 
+            with self.settings.settingsLock:
+                settings = copy.deepcopy(self.settings.settings)
+            
+            settlingTime=timedelta(minutes=settings['sensors']['settling_time'])
+            fastTime =   timedelta(minutes=settings['sensors']['fast_read_freq']**(-1))
+            slowTime =   timedelta(minutes=settings['sensors']['slow_read_freq']**(-1))
+            
+            if settings['magnet']['usePID']:
+                grtForPid=settings['pid']['grt']
+                cardForPid = 'GRT'+getGRTSuffix(grtForPid)
+                #override in case I'm forgetful or sleepy or whatever.
+                #The sensor settings are overridden for the pid card
+                #so that the pid card only reads out the one "grt for pid" sensor
+                settings['sensors'][cardForPid] = [grtForPid]
+
+            fastValues = {}
+            pidControlTemp=None
+
+            #r is a dictionary, with keys being sensors like 'AIN0'
+            #the meaning of those sensors is in SENSORS_MAP.
+            #The next thing we need to do is convert voltages to temperatures and send them
+            #to the database uploader. And also save the one used for the PID loop in a member
+            #variable so it can be used by do_pid_step
+
+            #This loop runs always. It goes through all sensors and decides which ones need to go where.
+            for k,v in r.iteritems():
+                #r is the labjack sensor data after calibration
+                sensor = SENSORS_MAP[k]
+                now = datetime.now()
+
+                #IF THIS SENSOR IS IN FAST MODE, read it if it's time
+                if self.sensorsFast[sensor]:
+                    if now-self.timeLastFastRead > fastTime and now-self.sensorsTime[sensor] > settlingTime:
+                        fastValues[sensor] = (self.sensorsLast[sensor],self.process(v,sensor,self.sensorsLast[sensor]))
+                #If it's not fast or ignored, it's slow. Read it if it's time.
+                elif not self.sensorsIgnore[sensor]:
+                    if now-self.sensorsTime[sensor] > settlingTime:
+                        self.slowValues[sensor] = (self.sensorsLast[sensor],self.process(v,sensor,self.sensorsLast[sensor]))
+                
+                #If we're using a PID loop, read the PID sensor regardless
+                if settings['magnet']['usePID'] and sensor == cardForPid:
+                    pidControlTemp=self.process(v,sensor,grtForPid)
+                #always read the current also.
+                if sensor=="Current":
+                    self.current = self.process(v,sensor,self.sensorsLast[sensor])
+
+            #Once we've read all the slow cards, we push them to the database
+            if len(self.slowValues)==self.numSlowCards and self.numSlowCards >0:
+                #push fastvalues too if any.
+                self.slowValues.update(fastValues)
+                self.dbuploader.q.put_nowait(self.slowValues)
+                self.slowValues = {}
+                #reinitialize the slow values array only after pushing it to the database.
+                if len(fastValues)>0:
+                    self.timeLastFastRead = now
+                #Now start reading out the next set of sensors!
+                self.next_sensor(settings)
+            #If the slow cards aren't being uploaded, we upload fast cards if any.
+            #(if slow cards are being uploaded, we bundle fast card info with it.)
+            elif len(fastValues)>0:
+                #print(self.numSlowCards)
+                #print(self.sensorsTime)
+                #print(len(self.slowValues))
+                self.timeLastFastRead = now
+                self.dbuploader.q.put_nowait(fastValues)
+            #Once it's time to start taking the next set of measurements
+            #reset the readout card counter to the beginning and start over.
+            if now-self.timeLastSlowRead>slowTime and self.numSlowCards == 0:
+                self.sensorsReadingNow=0
+                self.timeLastSlowRead =now
+                self.next_sensor(settings)
+            self.update_magnet(settings,temperature=pidControlTemp)
+
+
+
+        except Queue.Empty:
+            print("Queue is empty?")
+        except Exception:
+            traceback.print_exc()
+            self.stop()
+        if not self.lj.data.empty():
+            print("""[WARN] The logic thread may be behind by up to {} records.
+[WARN] Don't panic unless that number is increasing quickly,
+[WARN] or stays very large for long periods of time""".format(self.lj.data.qsize()))
+            #Use the following if it becomes clear that the logic thread really cannot keep up.
+            # n_records_skipped=0
+            # try:
+            #     while not self.lj.data.empty():
+            #         self.lj.data.get_nowait()
+            #         n_records_skipped+= 1
+            # except Queue.Empty:
+            #     pass
+            # print("Logic fell behind and skipped {} records. This just means readout will be a bit on the slow side")
+    def process(self,voltage, card, sensornum):
+        #read in files corresponding to sensornum and card
+        #make numpy interpolator
+        #run voltage through that.
+        v = np.mean(voltage) 
+        #print(v,card,sensornum)
+        #print(repr(v))
+        if card =='Voltage': 
+            return v
+        elif card=='Current':
+            return v*20
+        else:
+            return self.interp.go(v,card,sensornum)
+
+class AutoCycler():
+    def __init__(self):
+        #Sorry that all the comments contain self.stage.
+        #I made a mess and did a messy job cleaning up,
+        #self.stages are as follows:
+        #self.stage 0 is waiting
+        #self.stage 1 is hsw closed /ramping up / before hsw toggle
+        #self.stage 2 is hsw closed /after hsw toggle
+        #self.stage 3 is hsw open / ramping down (includes cold)
+        #self.stage 3 + done means that the thingy is now cold.
+        self.stage = 0
+        self.heatSwitch = HeatSwitch()
+        self.cycleID=0
+        self.done=False
+
+    def update(self,settings,servoModeIn):
+        """
+        Params: dictionary of auto cycle settings,
+                current state of servo mode switch
+        returns:
+                Tuple of set point for magnet current,
+                         ramp rate for same
+                         requested cycle/servo setting
+        """
+        #This has an edge case:
+        #if the heat switch malfunctions while toggling,
+        #then it will drain all the current after doing the toggle.
+        #That *shouldn't* happen. but you know it will. Someday.
+        #ideally you'd freeze the current where it is, and exit 
+        #
+        if self.cycleID!=settings['cycle_ID']:
+            #Reset the cycle to self.stage 0 and stuff
+            self.stage=0
+            self.done=False
+            self.cycleID=settings['cycle_ID']
+         
+
+
+        #This sets reasonable default values for the magnet current and ramp rate. 
+        current=settings['setpoint']
+        ramprate=0
+
+        now = datetime.now()
+        # if self.heatSwitch.hswError is not None:
+        #     #If the heat switch had an error, best to have the magnet not ramp anywhere. (even though ramprate 0 means it might...)
+        #     current = settings['setpoint']
+        #     ramprate= 0
+        servoMode = False
+
+        if servoModeIn and self.stage<3:
+            #If we're in servo mode, and the detector isn't really cold yet,
+            # sets the ramp rate and set point of current
+            #to safe values and asks for cycle mode to be activated.
+            ramprate=0.1 #We're in servo mode, so high-ish ramprates are ok
+            current=0
+
+        elif self.stage==0:
+            #timeready = now > settings['start_time']
+            #hswready = ??
+            if now > settings['start_time']:
+                self.heatSwitch.closeHsw()
+                #This will do nothing if the heat switch is not ready.
+
+            self.heatSwitch.check_status()
+            if self.heatSwitch.ready and self.heatSwitch.hswError is None and self.heatSwitch.hswClosed:
+                self.stage=1
+               
+            #The heat switch hasn't successfully closed yet, so the default values will be kept
+
+
+        elif self.stage==1:
+            #going into self.stage 1 we've already checked that the heat switch worked successfully.
+            ramprate=settings['ramprate_up']
+            #TODO: add check for high temperature. Maybe run a PID on 5 K or something?
+            #Note: heatswitch_delay has to be < duration even when do_hsw_toggle is false.
+            #Shouldn't be much of an issue, because do toggle will be true most of the time, and the 
+            #delay should not be changed even when do_toggle is.
+            if now > settings['start_time']+timedelta(hours=settings['heatswitch_delay']):
+                if settings['do_hsw_toggle']:
+                    self.heatSwitch.toggleHsw()
+
+                self.heatSwitch.check_status()
+                if not settings['do_hsw_toggle'] or (self.heatSwitch.ready and self.heatSwitch.hswError is None):
+                    self.stage=2
+                    #self.hswRunning = False
+            
+        elif self.stage==2:
+            ramprate=settings['ramprate_up']
+            if now>settings['start_time']+timedelta(hours=settings['duration']):
+                print("opening hsw to start rampdown")
+                self.heatSwitch.openHsw()
+
+            self.heatSwitch.check_status()
+            if self.heatSwitch.hswClosed==False and self.heatSwitch.ready and self.heatSwitch.hswError is None:
+                print("Hsw opened successfully, moving to stage 3")
+                self.stage=3
+            
+        elif self.stage==3:
+            ramprate=settings['ramprate_down']
+            servoMode=True #current is draining, and when it gets to 0 the magnet will
+            #go into servo mode. 
+            print("Stage is now 3")
+            if servoModeIn:
+                self.done=True
+                self.stage=4
+                print("Stage is now 4")
+        #in self.stage4 don't do anything.
+
+
+        return (current,ramprate,servoMode,{'done':self.done,
+                                            'stage':self.stage,
+                                            'error':self.heatSwitch.hswError,
+                                            'heat_switch_closed':self.heatSwitch.hswClosed,
+                                            'heat_switch_ready':self.heatSwitch.ready
+                                            })
+
+
+class HeatSwitch():
+    def __init__(self):
+        self.hswClosed = False #only believe hswClosed value if no error and ready==true. (It is safe to assume the hsw is open)
+        self.command = None #this will be a function.
+        self.hswError = None
+        self.numErrs=0
+        self.ready=True
+        self.pobject=None
+        self.log = []
+    def check_status(self):
+        if self.pobject is not None:
+            rc=self.pobject.poll()
+            #rc is return code of the subprocess.
+            if rc is None:
+                return None
+            elif rc == 0:
+                stdout,stderr=self.pobject.communicate()
+                self.log.append((stdout,stderr))
+                self.ready=True
+                self.numErrs=0
+                self.hswError=None
+                self.pobject=None
+                return True
+            else:
+                stdout,stderr=self.pobject.communicate()
+                self.log.append((stdout,stderr,rc))
+                print(stdout,stderr)
+                self.hswError=rc
+                self.pobject=None
+                if self.numErrs < 3:
+                    print("MOTOR ERROR! Tryin' again...")
+                    self.numErrs += 1
+                    self.command(override=True)
+                return False
+
+    def _runHsw(self,command,override):
+        if self.ready or override:
+            self.ready=False
+            #I could have imported their python code and tried to stuff it into a thread,
+            #but overall I actually think this is safer. I also think they already use
+            #some threads, so I'm scared to try to integrate it.
+            self.pobject=subprocess.Popen(['python2','heatswitch_automatic.py',command],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+            return True
+        return False
+
+    def closeHsw(self,override=False):
+        self.command=self.closeHsw
+        if self._runHsw('close',override):
+            self.hswClosed = True
+
+    def openHsw(self,override=False):
+        self.command=self.openHsw
+        if self._runHsw('open',override):
+            self.hswClosed = False
+
+    def toggleHsw(self,override=False):
+        self.closeHsw(override=override)
+        self.command=self.toggleHsw
+        #if the heat switch isn't open (i.e. at hard limit), the closehsw command 
+        #automatically opens the heat switch before closing it. So it 
+        #does the same thing as what I think of as toggling.
+
+def getGRTSuffix(n):
+    if n<4:
+        return '0-3'
+    else:
+        return '4-7'
+
+class Interpolators:
+    def __init__(self):
+
+        sensors_id = np.genfromtxt('calibration/Sensor_ID.txt',
+                                   skip_header=2,
+                                   delimiter='\t',
+                                   dtype=str)
+        self.sensors_interp = {'2WIRE':[None for x in range(8)],
+                '4WIRE':[None for x in range(4)],
+                'GRT0-3':[None for x in range(4)],
+                'GRT4-7':[None for x in range(8)]}#lower half of this array stays none 
+                #and will not be populated so that you can say var['GRT4-7'][6] 
+                #where 6 is the grt number
+        self.pre_functions = {'2WIRE':[None for x in range(8)],
+                '4WIRE':[None for x in range(4)],
+                'GRT0-3':[None for x in range(4)],
+                'GRT4-7':[None for x in range(8)]}
+        for sensor in sensors_id:
+            snum=int(sensor[0][-1])
+            card = sensor[0][0:-1].replace('-','')
+            if card == 'GRT':
+                card = card+getGRTSuffix(snum)
+            card_calib = np.genfromtxt('calibration/'+card,skip_header=3).T
+
+            card_interps = interp1d(card_calib[1],card_calib[0],fill_value='extrapolate')
+            #reversed because first col is resistance in file. I'll be putting in a voltage
+            #and expecting to get out a resistance.
+            if sensor[2] == 'R':
+                self.pre_functions[card][snum] = card_interps
+
+            else:
+                self.pre_functions[card][snum] = preFunction = lambda x: x
+
+            sensor_calib = np.genfromtxt('calibration/'+sensor[3],skip_header=3).T
+            #print(sensor_calib)
+            sensor_interp = interp1d(sensor_calib[1],sensor_calib[0],fill_value='extrapolate')
+            self.sensors_interp[card][snum]=sensor_interp
+
+
+    def go(self,v,card,num):
+        a = self.sensors_interp[card][num](self.pre_functions[card][num](v))
+        #print(repr(a))
+        return float(a)
+        #interpolators apparently return 0 dimensional numpy arrays...
+
+
+def ctrlc_handler(signal,frame):
+    worker.stop()
+    sys.exit()
+
+def main():
+    global worker #Worker is global so that the ctrlc_handler can call its stop function.
+
+    lj = LabJackController()
+    worker=LogicClass(lj)
+
+    # Start the stream and begin loading the result into a Queue
+    print("starting lj thread")
+
+    lj.start()
+    worker.run()#Since the worker isn't actually a thread, this passes the
+    #execution to the worker.
+
+
+if __name__ == "__main__":
+    
+    signal.signal(signal.SIGINT,ctrlc_handler)
+    main()
+
