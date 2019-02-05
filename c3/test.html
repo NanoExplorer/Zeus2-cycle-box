@@ -1,0 +1,60 @@
+<html>
+<head>
+</head>
+<body>
+<link href="c3.css" rel="stylesheet">
+<script src="d3.min.js" charset="utf-8"></script>
+<script src="c3.min.js"></script>
+<div id="chart"></div>
+<script>
+    var chart=c3.generate({
+    data: {
+        columns:[['data1',0]],
+        type: 'line'
+
+    },
+    transition:{
+        duration:100
+    },
+            point:{
+            show: false
+        }
+});
+
+//function stuff(data){
+//     chart.load({columns:[data]});
+//     setTimeout(morestuff,3000);
+// }
+index=0;
+// data2=[];
+if !("WebSocket" in window){
+    alert("Websocket not supported. Please try a different browser")
+}
+
+var ws = new WebSocket("ws://localhost:9998/echo");
+ws.onopen=function() {
+    ws.send("HI!");
+};
+
+ws.onmessage = function(evt){
+    morestuff(JSON.parse(evt.data)['test']);
+};
+ws.onclose = function(){
+    console.log('connection closed.');
+};
+function morestuff(data){
+    //data = [1,3,5,7,9,2,4,6,8,10,12];
+    // data2.push(data[index]);
+    chart.flow({
+        columns:[
+            ['data1',data[index]]
+            ],
+            length:0
+        }
+        );
+    // if(index<13){
+    // stuff(data2);}
+}
+morestuff();
+</script>
+</body>
