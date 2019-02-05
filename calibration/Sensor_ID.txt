@@ -1,0 +1,22 @@
+Channel	Name	? to T	Conversion Table
+
+GRT0	4th stage bus	R	RO-600.txt
+GRT1	1K Cold Link	R	RX-102A.txt
+GRT2	open	R	RuOx2.txt
+GRT3	open	R	RuOx2.txt
+GRT4	3rd stage bus	R	RO-600.txt
+GRT5	Nb shield (top)	R	RX-102A.txt
+GRT6	Det Pkg (Array)	R	RX-102A.txt
+GRT7	Det Pkg (Cu Back)	R	RX-102A.txt
+4-WIRE0	1st PT head	V	DT-670_Diode2.txt
+4-WIRE1	40-4K HSw Base	V	DT-670_Diode2.txt
+4-WIRE2	ADR baseplate	V	DT-670_Diode1.txt
+4-WIRE3	2nd cold link	V	DT-670_Diode3.txt
+2-WIRE0	open	R	400_Carbon_Resistor.txt
+2-WIRE1	open	R	400_Carbon_Resistor.txt
+2-WIRE2	open	R	400_Carbon_Resistor.txt
+2-WIRE3	ADR carbon resistor	R	400_Carbon_Resistor.txt
+2-WIRE4	ADR diode	V	DT-670.txt
+2-WIRE5	grating	V	DT-670.txt
+2-WIRE6	4K Board box	V	DT-670_Diode4.txt
+2-WIRE7	ADR HSw Short	R	ADR_Short_sensing.txt

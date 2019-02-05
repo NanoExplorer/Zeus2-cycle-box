@@ -1,0 +1,11 @@
+MongoDB Notes
+1. We need a replica set in order to do cool things (get real time updates from the server). 
+To set it up, go to /etc/mongodb.conf and uncomment /add the following lines:
+replication:
+   replSetName: rs0
+Or, if you for some reason have a STUPID OLD STYLE CONF FILE do this instead
+replSet = rs0
+
+2. you only need to do this once: open a mongo shell with `mongo` and run
+rs.initiate()
+3. NEVER RUN MONGOD AS ROOT. Everything will break and you'll have to do `sudo chown -R mongodb /var/lib/mongodb/*` to fix it.

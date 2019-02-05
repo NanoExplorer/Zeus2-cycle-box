@@ -1,0 +1,7 @@
+GRT 0-3 A Card Calibration - Warm
+
+Resistance (ohms)	V (V)
+1	0.019
+36.3	0.704
+155.8	3.089
+271.2	5.008
