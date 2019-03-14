@@ -25,9 +25,13 @@ A lot of threads are used by this code. Be careful when editing variables that a
 The labjack is always in stream mode. It will take  a large number of data points and return them in an array. We then average the voltage points and return a single voltage for that time period, which helps reduce noise. About three times a second, all of the sensors are read by the labjack. The main thread then decides whether to keep that voltage data point (i.e., has the sensor had time to settle?). Since the labjack is always in the same mode, we will hopefully avoid the kind of timing errors we have seen in the past.
 
 # Next Steps
+Add python 3 support! Now that labjack supports python 3, it's definitely a good time to migrate. 
+
 We need a way to graphically edit the settings and display the temperatures. One idea is to write a python webserver that communicates with the database and a javascript plot app that you can view in a web browser. The javascript could also upload new settings to the server, which would put it in the database. This would be very cool to use, but difficult to write.
 
 The other idea would be to just make a python ui that connects directly to the database server. Could do something like matplotlib's built-in ui and an animated plot.
+
+The current best idea we've come up with is to use the software DashDAQ, which is built on top of plot.ly. It has all sorts of interactive gizmos that run in a web browser.
 
 
 
