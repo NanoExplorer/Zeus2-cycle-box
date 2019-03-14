@@ -1,12 +1,6 @@
-#mmmm m     mmmmmmmm m    m  mmmm  mm   m         mmmm    m    m
-#   "# "m m"    #    #    # m"  "m #"m  #        "   "#   #    #
-#mmm#"  "#"     #    #mmmm# #    # # #m #            m"   #    #
-#        #      #    #    # #    # #  # #          m"
-#        #      #    #    #  #mm#  #   ##        m#mmmm   #    #
-from __future__ import division
 import threading
 import u6
-import Queue
+import queue
 import traceback
 import copy
 
@@ -27,7 +21,7 @@ class LabJackController(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.device = init_device()
-        self.data = Queue.LifoQueue() #So that most recently added data will be used by "logic"
+        self.data = queue.LifoQueue() #So that most recently added data will be used by "logic"
         self.missed = 0
         self.keepGoing = False
 
@@ -123,7 +117,7 @@ class LabJackController(threading.Thread):
             try:
                 # Calling with convert = False, because we are going to convert in
                 # the main thread.
-                returnDict = self.device.streamData(convert = False).next()
+                returnDict = next(self.device.streamData(convert = False))
                 self.data.put_nowait(copy.deepcopy(returnDict))
 
                 #write the voltages to control magnet current and ramp rate
@@ -149,10 +143,10 @@ class LabJackController(threading.Thread):
                 self.device.streamStart()
                 print("Evil labjack error resolved successfully. No need to worry")
 
-        print "stream stopped."
+        print("stream stopped.")
         self.device.streamStop()
 
-        print "%s samples were lost due to errors." % self.missed
+        print("%s samples were lost due to errors." % self.missed)
 
 
 def init_device():
@@ -161,7 +155,7 @@ def init_device():
     ## For applying the proper calibration to readings.
     d.getCalibrationData()
     #
-    print "configuring U6 stream"
+    print("configuring U6 stream")
     d.streamConfig(NumChannels = 6,
                    ChannelNumbers = [ 0,2,4,6,8,10 ], 
                    ChannelOptions = [ 128,128,128,128,128,128 ],

@@ -1,13 +1,7 @@
-#mmmm m     mmmmmmmm m    m  mmmm  mm   m         mmmm    m    m
-#   "# "m m"    #    #    # m"  "m #"m  #        "   "#   #    #
-#mmm#"  "#"     #    #mmmm# #    # # #m #            m"   #    #
-#        #      #    #    # #    # #  # #          m"
-#        #      #    #    #  #mm#  #   ##        m#mmmm   #    #
-from __future__ import division
 from pymongo import MongoClient
 import pymongo
 import threading
-import Queue
+import queue
 from datetime import datetime
 
 class SettingsWatcherThread(threading.Thread):
@@ -64,7 +58,7 @@ class DatabaseUploaderThread(threading.Thread):
         self.client=MongoClient('localhost',27017)
         self.db=self.client.hk_data
         self.thermometrydb=self.db.thermometry
-        self.q = Queue.Queue()
+        self.q = queue.Queue()
         #Queues are thread safe. You do not need to use a lock to communicate with a queue.
         self.keepGoing=True
 
@@ -77,6 +71,6 @@ class DatabaseUploaderThread(threading.Thread):
             data = self.q.get(True,None)
             data.update({'timestamp':datetime.now()})
             self.thermometrydb.insert_one(data)
-        except Queue.Empty:
+        except queue.Empty:
             print("Upload queue is empty?")
         

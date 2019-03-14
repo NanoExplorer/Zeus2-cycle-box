@@ -1,12 +1,6 @@
-#mmmm m     mmmmmmmm m    m  mmmm  mm   m         mmmm    m    m
-#   "# "m m"    #    #    # m"  "m #"m  #        "   "#   #    #
-#mmm#"  "#"     #    #mmmm# #    # # #m #            m"   #    #
-#        #      #    #    # #    # #  # #          m"
-#        #      #    #    #  #mm#  #   ##        m#mmmm   #    #
-from __future__ import division
 import numpy as np
 from datetime import datetime, timedelta
-import Queue
+import queue
 import copy
 import sys
 import signal
@@ -159,7 +153,13 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.pid.SetPoint = pids['temp_set_point']
 
         self.pid.update(temperature)
-        print "{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}".format(self.pid.output,temperature,self.pid.SetPoint,self.pid.PTerm,self.pid.Ki*self.pid.ITerm,self.pid.Kd * self.pid.DTerm)
+        pid_fmt_str="{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}"
+        print(pid_fmt_str.format(self.pid.output,
+                                 temperature,
+                                 self.pid.SetPoint,
+                                 self.pid.PTerm,
+                                 self.pid.Ki*self.pid.ITerm,
+                                 self.pid.Kd * self.pid.DTerm))
         return(self.pid.output,pids['ramp_rate'])
 
 
@@ -213,7 +213,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         """
         toRead = {}
         self.numSlowCards=0
-        for name,sensors in settings["sensors"]['read'].iteritems():
+        for name,sensors in settings["sensors"]['read'].items():
             #print(sensors)
             nsensors = len(sensors)
             if nsensors == 0:
@@ -281,7 +281,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             #variable so it can be used by do_pid_step
 
             #This loop runs always. It goes through all sensors and decides which ones need to go where.
-            for k,v in r.iteritems():
+            for k,v in r.items():
                 #r is the labjack sensor data after calibration
                 sensor = SENSORS_MAP[k]
                 now = datetime.now()
@@ -331,7 +331,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
 
 
-        except Queue.Empty:
+        except queue.Empty:
             print("Queue is empty?")
         except Exception:
             traceback.print_exc()
