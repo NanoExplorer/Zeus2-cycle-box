@@ -25,7 +25,7 @@ A lot of threads are used by this code. Be careful when editing variables that a
 The labjack is always in stream mode. It will take  a large number of data points and return them in an array. We then average the voltage points and return a single voltage for that time period, which helps reduce noise. About three times a second, all of the sensors are read by the labjack. The main thread then decides whether to keep that voltage data point (i.e., has the sensor had time to settle?). Since the labjack is always in the same mode, we will hopefully avoid the kind of timing errors we have seen in the past.
 
 # Next Steps
-Add python 3 support! Now that labjack supports python 3, it's definitely a good time to migrate. 
+We've just added python 3 support! Most of the "live" code is now in Py3. However, py2 is still required in order for the etherser code to work (the motor box control script is started as a subprocess under python 2. That code is monstrous and I do not want to have to migrate it. Hopefully it will just work and not need modification ever.) 
 
 We need a way to graphically edit the settings and display the temperatures. One idea is to write a python webserver that communicates with the database and a javascript plot app that you can view in a web browser. The javascript could also upload new settings to the server, which would put it in the database. This would be very cool to use, but difficult to write.
 
