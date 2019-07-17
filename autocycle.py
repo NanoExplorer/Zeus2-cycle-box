@@ -4,17 +4,15 @@ import subprocess
 
 class AutoCycler():
     def __init__(self):
-        #Sorry that all the comments contain self.stage.
-        #I made a mess and did a messy job cleaning up,
-        #self.stages are as follows:
-        #self.stage 0 is waiting
-        #self.stage 1 is hsw closed /ramping up / before hsw toggle
-        #self.stage 2 is hsw closed /after hsw toggle
-        #self.stage 3 is hsw open / ramping down (includes cold)
-        #self.stage 3 + done means that the thingy is now cold.
+        #stages are as follows:
+        #stage 0 is waiting
+        #stage 1 is hsw closed /ramping up / before hsw toggle
+        #stage 2 is hsw closed /after hsw toggle
+        #stage 3 is hsw open / ramping down (includes cold)
+        #stage 3 + done means that the thingy is now cold.
         self.stage = 0
         self.heatSwitch = HeatSwitch()
-        self.cycleID=0
+        self.cycleID=-1
         self.done=False
 
     def update(self,settings,servoModeIn):
@@ -25,15 +23,14 @@ class AutoCycler():
                 Tuple of set point for magnet current,
                          ramp rate for same
                          requested cycle/servo setting
+                         dictionary of heatswitch error info
         """
-        #This has an edge case:
-        #if the heat switch malfunctions while toggling,
-        #then it will drain all the current after doing the toggle.
-        #That *shouldn't* happen. but you know it will. Someday.
-        #ideally you'd freeze the current where it is, and exit 
-        #
+
+
         if self.cycleID!=settings['cycle_ID']:
-            #Reset the cycle to self.stage 0 and stuff
+            #This activates when we've moved on to a new cycle, so reset settings to
+            #initial values.
+            print("Autocycle armed. Waiting until start_time")
             self.stage=0
             self.done=False
             self.cycleID=settings['cycle_ID']
@@ -63,10 +60,12 @@ class AutoCycler():
             #hswready = ??
             if now > settings['start_time']:
                 self.heatSwitch.closeHsw()
+                print("Closing heat switch in preparation for autocycle.")
                 #This will do nothing if the heat switch is not ready.
 
             self.heatSwitch.check_status()
             if self.heatSwitch.ready and self.heatSwitch.hswError is None and self.heatSwitch.hswClosed:
+                print("Hsw successfully closed. Autocycle ntering stage 1 - wait for hsw toggle.")
                 self.stage=1
                
             #The heat switch hasn't successfully closed yet, so the default values will be kept
@@ -81,34 +80,46 @@ class AutoCycler():
             #delay should not be changed even when do_toggle is.
             if now > settings['start_time']+timedelta(hours=settings['heatswitch_delay']):
                 if settings['do_hsw_toggle']:
+                    print("Starting hsw toggle")
                     self.heatSwitch.toggleHsw()
 
                 self.heatSwitch.check_status()
                 if not settings['do_hsw_toggle'] or (self.heatSwitch.ready and self.heatSwitch.hswError is None):
                     self.stage=2
+                    print("Hsw toggle complete. Autocycle entering stage 2 - wait for rampdown.")
                     #self.hswRunning = False
+            #This has (may have?) an edge case: (DOUBLE CHECK - It looks like this might be fixed.)
+            #if the heat switch malfunctions while toggling,
+            #then it will drain all the current after doing the toggle.
+            #That *shouldn't* happen. but you know it will. Someday.
+            #ideally you'd freeze the current where it is, and exit 
+            #Looks to me like we freeze in stage 1 unless there's no hsw error and the hsw is ready...
             
         elif self.stage==2:
             ramprate=settings['ramprate_up']
             if now>settings['start_time']+timedelta(hours=settings['duration']):
-                print("opening hsw to start rampdown")
+                print("Opening hsw in preparation for demag.")
                 self.heatSwitch.openHsw()
 
             self.heatSwitch.check_status()
             if self.heatSwitch.hswClosed==False and self.heatSwitch.ready and self.heatSwitch.hswError is None:
-                print("Hsw opened successfully, moving to stage 3")
+                print("Hsw opened successfully. Autocycle entering stage 3 - drain current.")
                 self.stage=3
             
         elif self.stage==3:
             ramprate=settings['ramprate_down']
             servoMode=True #current is draining, and when it gets to 0 the magnet will
             #go into servo mode. 
-            print("Stage is now 3")
+            
             if servoModeIn:
                 self.done=True
                 self.stage=4
-                print("Stage is now 4")
-        #in self.stage4 don't do anything.
+                print("Autocycle entered stage 4 (autocycle finished!)")
+        #in stage 4 we won't even be called because self.done=True. Just in case though:
+        elif self.stage==4:
+            servoMode=True
+            current=0
+            ramprate=0
 
 
         return (current,ramprate,servoMode,{'done':self.done,

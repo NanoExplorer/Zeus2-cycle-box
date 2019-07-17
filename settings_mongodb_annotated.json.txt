@@ -8,7 +8,7 @@
         "ramprate_up": 0.3, 
         "setpoint": 9.2, 
         "start_time": "2012-02-02 06:35:06" when to start auto cycle. in python would be a datetime object
-        "cycle_ID": a unique number identifying this cycle (server should do something like cycle_id+=1 when a new cycle is triggered.)
+        "cycle_ID": a unique number identifying this cycle (UI SERVER should do something like cycle_id+=1 when a new cycle is triggered.)
     }, 
     "magnet": {
         "ramprate": 0, 
