@@ -1,5 +1,6 @@
 from scipy.interpolate import interp1d
 import numpy as np
+from common import getGRTSuffix
 
 class Interpolators:
     def __init__(self):

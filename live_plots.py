@@ -1,11 +1,31 @@
 import psutil
+from pymongo import MongoClient
+import pymongo
 psutil.cpu_percent(interval=None)
 import matplotlib
 import matplotlib.pyplot as plt
-import time
 import numpy as np
 import datetime
 from matplotlib.animation import FuncAnimation, writers
+import threading
+
+class MongoConnector(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.dataLock = threading.Lock()
+
+
+        with open("mongostring",'r') as mfile:
+            mstring=mfile.read()
+        client = MongoClient(mstring)
+        db=client.hk_data
+        newdata= []
+
+    def run():
+        cursor=db.thermometry.watch(max_await_time_ms=10000)
+        for change in cursor:
+            with self.dataLock:
+                newdata.append(change['fullDocument'])
 
 class animatedplot():
     def __init__(self,size):
@@ -65,7 +85,6 @@ class animatedplot():
         self.ax1.set_ylim(np.nanmin(self.utiliz)-0.1,np.nanmax(self.utiliz)+0.1)
 
         self.ax2.set_ylim(np.nanmin(self.memry)-0.1,np.nanmax(self.memry)+0.1)
-        time.sleep(1)
         #self.ax.figure.canvas.draw()
         return self.ln,
 a = animatedplot(100)

@@ -12,6 +12,8 @@ from pid import PID
 from autocycle import AutoCycler
 from interpolators import Interpolators
 
+from common import getGRTSuffix
+
 
 QUEUE_TIMEOUT=30 #Change to None in production.
 #If this is a number, then there will be polling going on.
@@ -121,7 +123,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             servoMode=self.settings.settings["magnet"]["servo_mode"]
             pids=self.settings.settings["pid"]
             self.pid = PID(P=pids['p'],I=pids['i'],D=pids['d'],cap=pids['max_current'])
-            self.pid.setWindup(pids['i_windup_guard'])
+            self.pid.setWindup(pids['max_current'])
             self.pid.SetPoint = pids['temp_set_point']
 
         self.lj.servoMode=servoMode #atomic operation doesn't need lock
@@ -156,12 +158,13 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
         self.pid.update(temperature)
         pid_fmt_str="{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}"
-        print(pid_fmt_str.format(self.pid.output,
-                                 temperature,
-                                 self.pid.SetPoint,
-                                 self.pid.PTerm,
-                                 self.pid.Ki*self.pid.ITerm,
-                                 self.pid.Kd * self.pid.DTerm))
+        self.dbuploader.q.put_nowait({'PID_status': {
+                                'request_current':self.pid.output,
+                                'temp_now':temperature,
+                                'set_point':self.pid.SetPoint,
+                                'P_term':self.pid.PTerm,
+                                'I_term':self.pid.Ki*self.pid.ITerm,
+                                'D_term':self.pid.Kd * self.pid.DTerm}})
         return(self.pid.output,pids['ramp_rate'])
 
 
@@ -203,6 +206,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         if new_mode != self.lj.servoMode:
             if self.current < 0.05:
                 self.lj.servoMode = new_mode
+                self.dbuploader.q.put_nowait({'currently_in_servo': new_mode})
 
     def next_sensor(self,settings):
         """Decide which sensor needs to be read out next, and tell that to the lj
@@ -364,14 +368,6 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             return v*20
         else:
             return self.interp.go(v,card,sensornum)
-
-
-def getGRTSuffix(n):
-    if n<4:
-        return '0-3'
-    else:
-        return '4-7'
-
 
 
 def ctrlc_handler(signal,frame):

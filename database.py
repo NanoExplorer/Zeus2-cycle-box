@@ -7,7 +7,9 @@ from datetime import datetime
 class SettingsWatcherThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.client=MongoClient('localhost',27017)
+        with open("mongostring",'r') as mfile:
+            mstring=mfile.read()
+        self.client = MongoClient(mstring)
         self.db=self.client.hk_data
         self.settingsdb=self.db.settings
         self.settings = {}
@@ -55,7 +57,9 @@ class DatabaseUploaderThread(threading.Thread):
     """
     def __init__(self):
         threading.Thread.__init__(self)
-        self.client=MongoClient('localhost',27017)
+        with open("mongostring",'r') as mfile:
+            mstring=mfile.read()
+        self.client = MongoClient(mstring)
         self.db=self.client.hk_data
         self.thermometrydb=self.db.thermometry
         self.q = queue.Queue()
