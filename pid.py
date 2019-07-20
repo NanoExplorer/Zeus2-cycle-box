@@ -74,7 +74,7 @@ class PID:
 
         if (delta_time >= self.sample_time):
             self.PTerm = self.Kp * error
-            self.ITerm += error * delta_time
+            self.ITerm += error * delta_time * self.Ki
 
             if (self.ITerm < -self.windup_guard):
                 self.ITerm = -self.windup_guard
@@ -89,7 +89,7 @@ class PID:
             self.last_time = self.current_time
             self.last_error = error
 
-            almostoutput = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            almostoutput = self.PTerm + self.ITerm + (self.Kd * self.DTerm)
             self.output = min(max(almostoutput,0),self.output_cap)
 
     def setKp(self, proportional_gain):
