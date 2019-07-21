@@ -66,7 +66,6 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.dbuploader = DatabaseUploaderThread()
         self.dbuploader.setDaemon(True)
         self.dbuploader.start()
-        self.status=CurrentStatus()
         self.settings = SettingsWatcherThread()
         self.settings.setDaemon(True)
         self.lastAutoCycleStatus={}
@@ -142,10 +141,6 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.dbuploader.keepGoing=False
         self.settings.keepGoing=False
 
-    # def update_autocycle(self, cycleSettings,servo):
-    #     return self.autoCycler.update(cycleSettings,servo)
-    # why did this method even exist...?
-
     def do_pid_step(self,pids,temperature):
         #their interface doesn't make 100% sense for my use case.
         #it might've been better to just import their update method
@@ -197,24 +192,10 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.lj.currentRamprate=ramprate
         self.lj.currentSetpoint=current
     def update_temperatures(self,tempdict):
-        for k,v in tempdict:
-            # if k == 'auto_cycle_status':
-            #     pass
-            # elif k == 'currently_in_servo':
-            #     pass
-            # 'PID_status'
-            # 'request_current'
-            # 'temp_now'
-            # 'set_point'
-            # 'P_term'
-            # 'I_term'
-            # 'D_term'
-            #all of those are possible values. 
-            #Maybe we can include them in the status table sometime.
-            if k == '4WIRE' or k=='2WIRE' or k[0:3]=="GRT":
-                self.status.update(k,v[0],v[1])
-
-        dbuploader.q.put_nowait(tempdict)
+        #I guess this is here in case you
+        #ever want to do something else with this 
+        #data before uploading it...
+        self.dbuploader.q.put_nowait(tempdict)
 
     def switch_servo_cycle(self,new_mode):
         """
@@ -356,7 +337,6 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             self.update_magnet(settings,temperature=pidControlTemp)
 
 
-
         except queue.Empty:
             print("Queue is empty?")
         except Exception:
@@ -406,41 +386,6 @@ def main():
     lj.start()
     worker.run()#Since the worker isn't actually a thread, this passes the
     #execution to the worker.
-class CurrentStatus():
-    def __init__(self):
-        self.sensors_id = np.genfromtxt('calibration/Sensor_ID.txt',
-                                        skip_header=2,
-                                        delimiter='\t',
-                                        dtype=str)
-        self.sensors_temp = [0 for x in range(4+8+8+2)]
-        self.card_array_offsets={'2WIRE':12,
-                '4WIRE':8,
-                'GRT0-3':0,
-                'GRT4-7':0}
-        #ordered by grt,4wire,2wire, same as sensors_id file
-        self.sensor_names = self.sensors_id[:,1]
-        self.sensor_names=np.append(sensor_names,["Current","Voltage"])
-        self.sensor_wires = self.sensors_id[:,0]
-        self.sensor_wires=np.append(sensor+wires,["Magnet","Magnet"])
-
-    def update(card,num,temperature):
-        if card == 'Voltage':
-            self.sensors_temp[-1] = temperature + " V"
-        elif card == 'Current':
-            self.sensors_temp[-2] = temperature + " A"
-        else:
-            idx = self.card_array_offsets[card]+num
-            self.sensors_temp[idx]=temperature
-
-    def printTable():
-        tablestring=tabulate.tabulate(
-            [[x,y,z] for x,y in zip(sensor_wires,
-                                      sensor_names,
-                                      sensors_temp)],
-            headers=["Sensor Wire",
-                     "Sensor Name",
-                     "Temperature (K)"])
-        print(tablestring)
 
 
     

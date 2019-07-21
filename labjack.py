@@ -21,7 +21,7 @@ class LabJackController(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.device = init_device()
-        self.data = queue.LifoQueue() #So that most recently added data will be used by "logic"
+        self.data = queue.Queue() 
         self.missed = 0
         self.keepGoing = False
 

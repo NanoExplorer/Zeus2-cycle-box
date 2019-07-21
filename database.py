@@ -77,4 +77,18 @@ class DatabaseUploaderThread(threading.Thread):
             self.thermometrydb.insert_one(data)
         except queue.Empty:
             print("Upload queue is empty?")
-        
+
+
+class ThermometryWatcherThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        with open("mongostring",'r') as mfile:
+            mstring=mfile.read()
+        client = MongoClient(mstring)
+        self.db=client.hk_data
+        self.newdata= queue.Queue()
+
+    def run(self):
+        cursor=self.db.thermometry.watch(max_await_time_ms=10000)
+        for change in cursor:
+                self.newdata.put_nowait(change['fullDocument'])
