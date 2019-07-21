@@ -115,7 +115,8 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #this program crashes and is restarted - i.e., the first thing we write to the labjack should
         #be the same as the last thing we wrote to the labjack. 
         #TODO: UNLESS WE WERE IN AUTO CYCLE. POSSIBLE FIX: push servo/cycle info to thermometry and read it here
-
+        #I wonder if you can read from write-only pins on the labjack. That means we could get our info
+        #Straight from the horse's mouth...
         with self.settings.settingsLock:
             servoMode=self.settings.settings["magnet"]["servo_mode"]
             pids=self.settings.settings["pid"]
