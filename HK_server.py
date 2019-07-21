@@ -5,12 +5,14 @@ import copy
 import sys
 import signal
 import traceback
-
+import tabulate
 from database import SettingsWatcherThread, DatabaseUploaderThread
 from labjack import LabJackController
 from pid import PID 
 from autocycle import AutoCycler
 from interpolators import Interpolators
+
+from common import getGRTSuffix
 
 
 QUEUE_TIMEOUT=30 #Change to None in production.
@@ -64,6 +66,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.dbuploader = DatabaseUploaderThread()
         self.dbuploader.setDaemon(True)
         self.dbuploader.start()
+        self.status=CurrentStatus()
         self.settings = SettingsWatcherThread()
         self.settings.setDaemon(True)
         self.lastAutoCycleStatus={}
@@ -121,7 +124,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             servoMode=self.settings.settings["magnet"]["servo_mode"]
             pids=self.settings.settings["pid"]
             self.pid = PID(P=pids['p'],I=pids['i'],D=pids['d'],cap=pids['max_current'])
-            self.pid.setWindup(pids['i_windup_guard'])
+            self.pid.setWindup(pids['max_current'])
             self.pid.SetPoint = pids['temp_set_point']
 
         self.lj.servoMode=servoMode #atomic operation doesn't need lock
@@ -156,12 +159,13 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
         self.pid.update(temperature)
         pid_fmt_str="{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}"
-        print(pid_fmt_str.format(self.pid.output,
-                                 temperature,
-                                 self.pid.SetPoint,
-                                 self.pid.PTerm,
-                                 self.pid.Ki*self.pid.ITerm,
-                                 self.pid.Kd * self.pid.DTerm))
+        self.update_temperatures({'PID_status': {
+                                'request_current':self.pid.output,
+                                'temp_now':temperature,
+                                'set_point':self.pid.SetPoint,
+                                'P_term':self.pid.PTerm,
+                                'I_term':self.pid.Ki*self.pid.ITerm,
+                                'D_term':self.pid.Kd * self.pid.DTerm}})
         return(self.pid.output,pids['ramp_rate'])
 
 
@@ -181,7 +185,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             self.switch_servo_cycle(servoMode)
             if self.lastAutoCycleStatus != status:
                 self.lastAutoCycleStatus = status
-                self.dbuploader.q.put_nowait({'auto_cycle_status':status})
+                self.update_temperatures({'auto_cycle_status':status})
         elif settings["magnet"]["usePID"]:
             self.switch_servo_cycle(True)
             assert(temperature is not None)
@@ -192,6 +196,25 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             ramprate = settings["magnet"]["ramprate"]
         self.lj.currentRamprate=ramprate
         self.lj.currentSetpoint=current
+    def update_temperatures(self,tempdict):
+        for k,v in tempdict:
+            # if k == 'auto_cycle_status':
+            #     pass
+            # elif k == 'currently_in_servo':
+            #     pass
+            # 'PID_status'
+            # 'request_current'
+            # 'temp_now'
+            # 'set_point'
+            # 'P_term'
+            # 'I_term'
+            # 'D_term'
+            #all of those are possible values. 
+            #Maybe we can include them in the status table sometime.
+            if k == '4WIRE' or k=='2WIRE' or k[0:3]=="GRT":
+                self.status.update(k,v[0],v[1])
+
+        dbuploader.q.put_nowait(tempdict)
 
     def switch_servo_cycle(self,new_mode):
         """
@@ -203,6 +226,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         if new_mode != self.lj.servoMode:
             if self.current < 0.05:
                 self.lj.servoMode = new_mode
+                self.update_temperatures({'currently_in_servo': new_mode})
 
     def next_sensor(self,settings):
         """Decide which sensor needs to be read out next, and tell that to the lj
@@ -308,7 +332,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             if len(self.slowValues)==self.numSlowCards and self.numSlowCards >0:
                 #push fastvalues too if any.
                 self.slowValues.update(fastValues)
-                self.dbuploader.q.put_nowait(self.slowValues)
+                self.update_temperatures(self.slowValues)
                 self.slowValues = {}
                 #reinitialize the slow values array only after pushing it to the database.
                 if len(fastValues)>0:
@@ -322,7 +346,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
                 #print(self.sensorsTime)
                 #print(len(self.slowValues))
                 self.timeLastFastRead = now
-                self.dbuploader.q.put_nowait(fastValues)
+                self.update_temperatures(fastValues)
             #Once it's time to start taking the next set of measurements
             #reset the readout card counter to the beginning and start over.
             if now-self.timeLastSlowRead>slowTime and self.numSlowCards == 0:
@@ -366,14 +390,6 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             return self.interp.go(v,card,sensornum)
 
 
-def getGRTSuffix(n):
-    if n<4:
-        return '0-3'
-    else:
-        return '4-7'
-
-
-
 def ctrlc_handler(signal,frame):
     worker.stop()
     sys.exit()
@@ -390,7 +406,44 @@ def main():
     lj.start()
     worker.run()#Since the worker isn't actually a thread, this passes the
     #execution to the worker.
+class CurrentStatus():
+    def __init__(self):
+        self.sensors_id = np.genfromtxt('calibration/Sensor_ID.txt',
+                                        skip_header=2,
+                                        delimiter='\t',
+                                        dtype=str)
+        self.sensors_temp = [0 for x in range(4+8+8+2)]
+        self.card_array_offsets={'2WIRE':12,
+                '4WIRE':8,
+                'GRT0-3':0,
+                'GRT4-7':0}
+        #ordered by grt,4wire,2wire, same as sensors_id file
+        self.sensor_names = self.sensors_id[:,1]
+        self.sensor_names=np.append(sensor_names,["Current","Voltage"])
+        self.sensor_wires = self.sensors_id[:,0]
+        self.sensor_wires=np.append(sensor+wires,["Magnet","Magnet"])
 
+    def update(card,num,temperature):
+        if card == 'Voltage':
+            self.sensors_temp[-1] = temperature + " V"
+        elif card == 'Current':
+            self.sensors_temp[-2] = temperature + " A"
+        else:
+            idx = self.card_array_offsets[card]+num
+            self.sensors_temp[idx]=temperature
+
+    def printTable():
+        tablestring=tabulate.tabulate(
+            [[x,y,z] for x,y in zip(sensor_wires,
+                                      sensor_names,
+                                      sensors_temp)],
+            headers=["Sensor Wire",
+                     "Sensor Name",
+                     "Temperature (K)"])
+        print(tablestring)
+
+
+    
 
 if __name__ == "__main__":
     
