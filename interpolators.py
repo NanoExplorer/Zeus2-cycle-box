@@ -43,6 +43,8 @@ class Interpolators:
 
     def go(self,v,card,num):
         a = self.sensors_interp[card][num](self.pre_functions[card][num](v))
+        b = float(a)
+        #print(f"Just interpolated {v:.3f} volts to {b:.3f} K on sensor {card} {num}")
         #print(repr(a))
-        return float(a)
+        return b
         #interpolators apparently return 0 dimensional numpy arrays...
