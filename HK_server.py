@@ -317,7 +317,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
                 self.slowValues.update(fastValues)
                 if len(fastValues)==0:
                     #add magnet current and voltage info
-                    self.slowValues.update({"Voltage":voltage,"Current":self.current})
+                    self.slowValues.update({"Voltage":[0,voltage],"Current":[0,self.current]})
                 self.update_temperatures(self.slowValues)
                 self.slowValues = {}
                 #reinitialize the slow values array only after pushing it to the database.
