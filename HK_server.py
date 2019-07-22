@@ -364,13 +364,15 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #read in files corresponding to sensornum and card
         #make numpy interpolator
         #run voltage through that.
-        print(voltage)
         v = np.mean(voltage) 
         #print(v,card,sensornum)
         #print(repr(v))
         if card =='Voltage': 
             return v
         elif card=='Current':
+            if v*20 > 3.9:
+                with open("debug.txt",'w') as f:
+                    f.write(voltage)
             return v*20
         else:
             return self.interp.go(v,card,sensornum)
