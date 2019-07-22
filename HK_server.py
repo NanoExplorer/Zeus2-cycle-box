@@ -364,6 +364,8 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #read in files corresponding to sensornum and card
         #make numpy interpolator
         #run voltage through that.
+        if np.any(np.array(voltage)<-9000):
+            print("THAT's the problem. We're under -9000!")
         v = np.mean(voltage) 
         #print(v,card,sensornum)
         #print(repr(v))
