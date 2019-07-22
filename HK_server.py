@@ -308,11 +308,16 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
                 #always read the current also.
                 if sensor=="Current":
                     self.current = self.process(v,sensor,self.sensorsLast[sensor])
+                if sensor=="Voltage":
+                    voltage = self.process(v,sensor,self.sensorsLast[sensor])
 
             #Once we've read all the slow cards, we push them to the database
             if len(self.slowValues)==self.numSlowCards and self.numSlowCards >0:
                 #push fastvalues too if any.
                 self.slowValues.update(fastValues)
+                if len(fastValues==0):
+                    #add magnet current and voltage info
+                    self.slowValues.update({"Voltage":voltage,"Current":self.current})
                 self.update_temperatures(self.slowValues)
                 self.slowValues = {}
                 #reinitialize the slow values array only after pushing it to the database.

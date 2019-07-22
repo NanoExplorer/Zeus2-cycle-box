@@ -41,7 +41,9 @@ class CurrentStatus():
         print(tablestring)
 
 def main():
-    twt = ThermometryWatcherThread()
+    twt = ThermometryWatcherThread(num_previous=4,
+        previous_query={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}
+        )
     status = CurrentStatus()
     twt.setDaemon(True)
     twt.start()

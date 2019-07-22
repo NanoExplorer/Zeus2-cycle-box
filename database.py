@@ -80,15 +80,33 @@ class DatabaseUploaderThread(threading.Thread):
 
 
 class ThermometryWatcherThread(threading.Thread):
-    def __init__(self):
+    def __init__(self,num_previous=0,previous_query={},live_query={}):
+        """
+        to get past results (i.e. for pre-populating
+        a graph) tell us the number of events you want
+        in the past and the fields you want to see (in 
+        mongodb query form)
+
+        """
         threading.Thread.__init__(self)
         with open("mongostring",'r') as mfile:
             mstring=mfile.read()
         client = MongoClient(mstring)
         self.db=client.hk_data
         self.newdata= queue.Queue()
+        self.live_query=live_query
+        if num_previous>0:
+            c=self.db.thermometry.find(previous_query).sort('timestamp',-1).limit(num_previous)
+            docs =[]
+            for doc in c:
+                docs.append(doc)
+            #I want the oldest documents first
+            #earlier mongo sorted so that newest docs are first
+            for doc in docs[::-1]:
+                self.newdata.put_nowait(doc)
+
 
     def run(self):
-        cursor=self.db.thermometry.watch(max_await_time_ms=10000)
+        cursor=self.db.thermometry.watch([{"$match":self.live_query}],max_await_time_ms=10000)
         for change in cursor:
                 self.newdata.put_nowait(change['fullDocument'])
