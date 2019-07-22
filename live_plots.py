@@ -31,7 +31,7 @@ class animatedplot():
         q={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}
         self.twt = ThermometryWatcherThread(num_previous=600,
         previous_query=q,
-        #live_query=q
+        live_query=q
         )
         self.twt.setDaemon(True)
         self.twt.start()
