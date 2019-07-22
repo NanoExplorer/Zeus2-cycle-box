@@ -118,3 +118,5 @@ old_tests/heatwitch_automatic.py
 old_tests/wsgi.py
 prank.py
 settings_mongodb_sample.json
+mongostring
+mongo/cluster users
