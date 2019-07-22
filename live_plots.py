@@ -2,7 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
-from matplotlib.animation import FuncAnimation, writers
+from matplotlib.animation import FuncAnimation#, writers
 from database import ThermometryWatcherThread
 import queue
 
