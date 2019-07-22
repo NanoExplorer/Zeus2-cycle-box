@@ -315,7 +315,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             if len(self.slowValues)==self.numSlowCards and self.numSlowCards >0:
                 #push fastvalues too if any.
                 self.slowValues.update(fastValues)
-                if len(fastValues==0):
+                if len(fastValues)==0:
                     #add magnet current and voltage info
                     self.slowValues.update({"Voltage":voltage,"Current":self.current})
                 self.update_temperatures(self.slowValues)
