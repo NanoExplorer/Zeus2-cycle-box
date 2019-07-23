@@ -3,7 +3,7 @@ import u6
 import queue
 import traceback
 import copy
-import datetime
+import datetime.datetime
 
 class LabJackController(threading.Thread):
     """
