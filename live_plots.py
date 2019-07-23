@@ -5,7 +5,7 @@ import datetime
 from matplotlib.animation import FuncAnimation#, writers
 from database import ThermometryWatcherThread
 import queue
-
+import argparse
 class RollingNumpyArrays():
     def __init__(self,size):
         self.value=np.ones(size)*np.nan
@@ -24,7 +24,7 @@ class RollingNumpyArrays():
 
 
 class animatedplot():
-    def __init__(self,size):
+    def __init__(self,size,servo=None):
         #Writer = writers['ffmpeg']
         #writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
         self.size=size
@@ -33,7 +33,7 @@ class animatedplot():
         {'fullDocument.GRT0-3':{'$exists': True}},
         {'fullDocument.GRT4-7':{'$exists': True}}]}
         q={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}
-
+        self.servo=servo
         self.twt = ThermometryWatcherThread(num_previous=800,
         previous_query=q,
         live_query=q2
@@ -50,6 +50,10 @@ class animatedplot():
         self.sensor_arrays = [RollingNumpyArrays(size) for i in self.sensor_names]
         self.sensor_arrays[-1] = RollingNumpyArrays(size*3)
         self.sensor_arrays[-2] = RollingNumpyArrays(size*3)
+        if self.servo is not None:
+            self.sensor_arrays[self.servo] = RollingNumpyArrays(size * 10)
+            self.sensor_arrays[-1] = RollingNumpyArrays(size * 10)
+            self.sensor_arrays[-2] = RollingNumpyArrays(size * 10)
         self.card_array_offsets={'2WIRE':12,
                 '4WIRE':8,
                 'GRT0-3':0,
@@ -58,9 +62,10 @@ class animatedplot():
         #              [8+2,8+3,12+4,12+5,12+6],[0,6,7],[-1]]
         
         self.process_queue()
-
-        self.plots = [4,1,-1,-1,-1,1,4,4,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
-        
+        if self.servo is None:
+            self.plots = [4,1,-1,-1,-1,1,4,4,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
+        elif self.servo == 6:
+            self.plots= [1,1,-1,-1,-1,1,4,1,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
         self.fig,axs = plt.subplots(2,3,sharex=True)
         self.fig.tight_layout()
         ((self.ax1,self.ax2,self.ax3),(self.ax4,self.ax5,self.ax6))=axs
@@ -98,14 +103,20 @@ class animatedplot():
 
         plt.show()
     def minmaxdate(self):
-        mins=[]
-        maxs=[]
-        idxs=[]
-        for plot,rnparr in zip(self.plots,self.sensor_arrays):
-            if plot!=-1 and not np.isnan(rnparr.value).all():
-                mins.append(np.min(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
-                maxs.append(np.max(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
-        return min(mins),max(maxs)
+        if self.servo is None:
+            mins=[]
+            maxs=[]
+            idxs=[]
+            for plot,rnparr in zip(self.plots,self.sensor_arrays):
+                if plot!=-1 and not np.isnan(rnparr.value).all():
+                    mins.append(np.min(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
+                    maxs.append(np.max(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
+            return min(mins),max(maxs)
+        else:
+            servoarray = self.sensor_arrays[self.servo].value
+            servotime = self.sensor_arrays[self.servo].time
+            nonnantimes = servotime[np.logical_not(np.isnan(servoarray))]
+            return min(nonnantimes),max(nonnantimes)
     def process_sensor(self,card,num,temperature,time):
         if card == 'Voltage':
             idx=-1
@@ -146,4 +157,11 @@ class animatedplot():
         return self.lns[0],
 
 if __name__=="__main__":
-    a = animatedplot(100)
+    parser = argparse.ArgumentParser(description="view Zeus2 thermometry data in graphical plot form")
+    parser.add_argument('-s','--servo',type=int,help="indicate you're in servo mode. Takes 1 integer argument: the GRT sensor you're servoing on")
+    args= parser.parse_args()
+    if args.servo is not None:
+        print("in servo mode")
+        a = animatedplot(30,servo=args.servo)
+    else:
+        a = animatedplot(100)

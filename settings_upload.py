@@ -18,19 +18,19 @@ args=parser.parse_args()
 with open(args.settingsfile,'r') as jsonfile:
     settings=json.load(jsonfile)
 
-
+servo=settings['pid']
 if args.p is not None:
-    pass
+    servo['p']=args.p
 if args.i is not None:
-    pass
+    servo['i']=args.i
 if args.d is not None:
-    pass
+    servo['d']=args.d
 if args.set_temp is not None:
-    pass
+    servo['temp_set_point']=args.set_temp
 if args.current is not None:
-    pass
+    settings['magnet']['setpoint']=args.current
 if args.ramprate is not None:
-    pass
+    settings['magnet']['ramprate']=args.ramprate
 
 
 #client=MongoClient('localhost',27017)
