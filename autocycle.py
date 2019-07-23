@@ -62,9 +62,9 @@ class AutoCycler():
             #timeready = now > settings['start_time']
             #hswready = ??
             if now > settings['start_time']:
-                self.heatSwitch.closeHsw()
                 if self.heatSwitch.ready:
                     print("Closing heat switch in preparation for autocycle.")
+                self.heatSwitch.closeHsw()
                 #This will do nothing if the heat switch is not ready.
 
             self.heatSwitch.check_status()
@@ -84,7 +84,8 @@ class AutoCycler():
             #delay should not be changed even when do_toggle is.
             if now > settings['start_time']+timedelta(hours=settings['heatswitch_delay']):
                 if settings['do_hsw_toggle']:
-                    print("Starting hsw toggle")
+                    if self.heatSwitch.ready:
+                        print("Starting hsw toggle")
                     self.heatSwitch.toggleHsw()
 
                 self.heatSwitch.check_status()

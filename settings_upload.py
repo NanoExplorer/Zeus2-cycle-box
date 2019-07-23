@@ -12,6 +12,7 @@ parser.add_argument('-d', type=int, help="override the D term of the pid loop")
 parser.add_argument('-t', '--set-temp', type=float, help="override the set temp for the pid loop")
 parser.add_argument('-c', '--current', type=float, help="override the magnet current")
 parser.add_argument('-r', '--ramprate', type=float, help='override the magnet current ramp rate')
+parser.add_argument('--update-same-cycle',action='store_true')
 args=parser.parse_args()
 
 with open(args.settingsfile,'r') as jsonfile:
@@ -43,8 +44,12 @@ collection=db.settings
 settings['timestamp'] = datetime.now(tz=timezone.utc)
 time=settings['cycle']['start_time']
 settings['cycle']['start_time']=datetime.fromisoformat(time)
+cycle = settings['cycle'] # less typing
+if cycle['heatswitch_delay'] >= cycle['duration']:
+    print("Heatswitch delay must be less than duration. ")
+    exit()
 
-if settings['cycle']['armed']==True:
+if settings['cycle']['armed']==True and not args.update_same_cycle:
     if settings['cycle']['start_time'] < settings['timestamp']:
         print("cycle start time must be in the future!")
         exit()

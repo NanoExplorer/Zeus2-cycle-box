@@ -28,10 +28,15 @@ class animatedplot():
         #Writer = writers['ffmpeg']
         #writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
         self.size=size
+        q2={'$or':[{'fullDocument.2WIRE':{'$exists': True}},
+        {'fullDocument.4WIRE':{'$exists': True}},
+        {'fullDocument.GRT0-3':{'$exists': True}},
+        {'fullDocument.GRT4-7':{'$exists': True}}]}
         q={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}
-        self.twt = ThermometryWatcherThread(num_previous=600,
+
+        self.twt = ThermometryWatcherThread(num_previous=800,
         previous_query=q,
-        live_query=q
+        live_query=q2
         )
         self.twt.setDaemon(True)
         self.twt.start()
@@ -43,6 +48,8 @@ class animatedplot():
         self.sensor_names = self.sensors_id[:,1]
         self.sensor_names=np.append(self.sensor_names,["Current (A)","Voltage (V)"])
         self.sensor_arrays = [RollingNumpyArrays(size) for i in self.sensor_names]
+        self.sensor_arrays[-1] = RollingNumpyArrays(size*3)
+        self.sensor_arrays[-2] = RollingNumpyArrays(size*3)
         self.card_array_offsets={'2WIRE':12,
                 '4WIRE':8,
                 'GRT0-3':0,
@@ -96,8 +103,8 @@ class animatedplot():
         idxs=[]
         for plot,rnparr in zip(self.plots,self.sensor_arrays):
             if plot!=-1 and not np.isnan(rnparr.value).all():
-                mins.append(np.min(rnparr.time))
-                maxs.append(np.max(rnparr.time))
+                mins.append(np.min(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
+                maxs.append(np.max(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
         return min(mins),max(maxs)
     def process_sensor(self,card,num,temperature,time):
         if card == 'Voltage':
