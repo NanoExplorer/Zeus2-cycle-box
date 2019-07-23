@@ -63,7 +63,8 @@ class AutoCycler():
             #hswready = ??
             if now > settings['start_time']:
                 self.heatSwitch.closeHsw()
-                print("Closing heat switch in preparation for autocycle.")
+                if self.heatSwitch.ready:
+                    print("Closing heat switch in preparation for autocycle.")
                 #This will do nothing if the heat switch is not ready.
 
             self.heatSwitch.check_status()
