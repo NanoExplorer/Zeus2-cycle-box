@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 import subprocess
 
 
@@ -40,8 +40,10 @@ class AutoCycler():
         #This sets reasonable default values for the magnet current and ramp rate. 
         current=settings['setpoint']
         ramprate=0
-
-        now = datetime.now()
+        if settings['start_time'].tzinfo is not None:
+            now = datetime.now(tz=datetime.timeozne.utc)
+        else:
+            now = datetime.now()
         # if self.heatSwitch.hswError is not None:
         #     #If the heat switch had an error, best to have the magnet not ramp anywhere. (even though ramprate 0 means it might...)
         #     current = settings['setpoint']

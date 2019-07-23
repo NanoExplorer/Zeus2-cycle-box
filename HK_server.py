@@ -148,7 +148,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         self.pid.setKp(pids['p'])
         self.pid.setKi(pids['i'])
         self.pid.setKd(pids['d'])
-        self.pid.setWindup(pids['i_windup_guard'])
+        self.pid.setWindup(pids['max_current'])
         self.pid.output_cap=pids['max_current']
         self.pid.SetPoint = pids['temp_set_point']
 
@@ -368,7 +368,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
         v = np.mean(voltage[voltage<10]) #filter out 0xFFFF values that
         #translate to 10.1V and indicate error conditions
-        
+
         #print(v,card,sensornum)
         #print(repr(v))
         if card =='Voltage': 

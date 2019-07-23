@@ -1,45 +1,45 @@
-{THIS ISN'T A REAL JSON FILE
+{
     "cycle": {
-        "armed": false, whether the user has requested to start/continue an auto cycle (This will be true a lot of the time even when cycle is disarmed because when the cycle finishes this stays true. Client code will have to take care of making this false at cycle conclusion. This is not an issue because server code already makes sure it's safe for the cycle to be complete and this variable true.).
-        "do_hsw_toggle": true, whether to open and close the heat switch at some point during cycle
-        "duration": 7, duration hours
-        "heatswitch_delay": 3, time between starting ramp and doing hsw toggle
+        "armed": false, #whether the user has requested to start/continue an auto cycle (This will be true a lot of the time even when cycle is disarmed because when the cycle finishes this stays true. Client code will have to take care of making this false at cycle conclusion. This is not an issue because server code already makes sure it's safe for the cycle to be complete and this variable true.).
+        "do_hsw_toggle": true, #whether to open and close the heat switch at some point during cycle
+        "duration": 7, #duration hours
+        "heatswitch_delay": 3, #time between starting ramp and doing hsw toggle
         "ramprate_down": 0.03, 
         "ramprate_up": 0.3, 
         "setpoint": 9.2, 
-        "start_time": "2012-02-02 06:35:06" when to start auto cycle. in python would be a datetime object
-        "cycle_ID": a unique number identifying this cycle (UI SERVER should do something like cycle_id+=1 when a new cycle is triggered.)
+        "start_time": "2014-03-12T13:37:27-05:00", #when to start auto cycle. in python would be a datetime object
+        "cycle_ID": 1 #a unique number identifying this cycle (UI SERVER should do something like cycle_id+=1 when a new cycle is triggered.)
     }, 
     "magnet": {
         "ramprate": 0, 
-        "servo_mode": true, false means cycle mode
+        "servo_mode": true, #false means cycle mode
         "setpoint": 0,
         "usePID": false
     }, 
     "pid": {
         "d": 0, 
-        "grt": 6, which grt sensor to use as pid loop control variable
+        "grt": 6, #which grt sensor to use as pid loop control variable
         "i": 16, 
-        "max_current": 12, current cap, even if pid loop wants to go over this number controller won't let it
+        "max_current": 12, #current cap, even if pid loop wants to go over this number controller won't let it
         "p": 320, 
         "temp_set_point": 0.13,
         "i_windup_guard":20,
-        'ramp_rate':9
+        "ramp_rate":9
     }, 
     "sensors": {
-        "read": { "2WIRE":[list of 2wire sensor numbers]
-                  "4WIRE":[list of 4wire sensor numbers]
-                  "GRT0-3":[list of GRT0-3 sensor numbers]
-                  "GRT4-7":[list of GRT4-7 sensor numbers]
-        }
+        "read": { "2WIRE":[5,6,7], #Each is a list of all the sensor numbers
+                  "4WIRE":[0,1,2,3], #on that card that you
+                  "GRT0-3":[0,1], #want to read. If there's only one, it will
+                  "GRT4-7":[5,6,7] #automatically switch to fast readout mode
+        },
         "slow_read_freq": 0.5, #times per minute
-        "fast_read_freq": 60 #times per minute
-        "settling_time":0.30 minutes (18 seconds).
+        "fast_read_freq": 60, #times per minute
+        "settling_time":0.30 #minutes (18 seconds).
     }, 
-    "timestamp": "2018-11-06 19:36:52.562754" The time that these settings were published. This exists so that the controller can get the latest set of settings and so that we can keep a record of the settings as a function of time. 
+    "timestamp": "2018-11-06 19:36:52.562754" #The time that these settings were published. This exists so that the controller can get the latest set of settings and so that we can keep a record of the settings as a function of time. 
 }
 
-I'm a network request, bad throughout.
-Here is my source port, this was my route.
-When I get sent over, you will pout.
-Crash your server and then logout.
+#I'm a network request, bad throughout.
+#Here is my source port, this was my route.
+#When I get sent over, you will pout.
+#Crash your server and then logout.
