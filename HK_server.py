@@ -205,7 +205,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         of the voltages that it's reading in, so this needs to stay in logic.
         """
         if new_mode != self.lj.servoMode:
-            if self.current < 0.05:
+            if self.current < 0.08:
                 self.lj.servoMode = new_mode
                 self.update_temperatures({'currently_in_servo': new_mode})
 

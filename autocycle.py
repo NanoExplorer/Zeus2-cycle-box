@@ -54,7 +54,8 @@ class AutoCycler():
             #If we're in servo mode, and the detector isn't really cold yet,
             # sets the ramp rate and set point of current
             #to safe values and asks for cycle mode to be activated.
-            ramprate=0.1 #We're in servo mode, so high-ish ramprates are ok
+            #This is kind of a "stage -1"
+            ramprate=3 #We're in servo mode, so high-ish ramprates are ok
             current=0
 
         elif self.stage==0:

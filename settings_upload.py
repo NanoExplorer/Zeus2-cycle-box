@@ -43,7 +43,11 @@ collection=db.settings
 settings['timestamp'] = datetime.now(tz=timezone.utc)
 time=settings['cycle']['start_time']
 settings['cycle']['start_time']=datetime.fromisoformat(time)
+
 if settings['cycle']['armed']==True:
+    if settings['cycle']['start_time'] < settings['timestamp']:
+        print("cycle start time must be in the future!")
+        exit()
     confirm=input("Did you remember to increment the autocycle ID? [y/n]")
     if confirm!='y':
         print('aborting...')
