@@ -176,7 +176,7 @@ class HeatSwitch():
             #some threads, so I'm scared to try to integrate it.
             #IN ADDITION I just migrated all this code to python3, and no way am I going
             #to try that with the automatic heatswitch code.
-            self.pobject=subprocess.Popen(['python2','heatswitch_automatic.py',command],
+            self.pobject=subprocess.Popen(['python','heatswitch_automatic.py',command],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
             return True
