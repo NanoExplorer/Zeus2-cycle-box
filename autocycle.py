@@ -103,7 +103,8 @@ class AutoCycler():
         elif self.stage==2:
             ramprate=settings['ramprate_up']
             if now>settings['start_time']+timedelta(hours=settings['duration']):
-                print("Opening hsw in preparation for demag.")
+                if self.heatSwitch.ready:
+                    print("Opening hsw in preparation for demag.")
                 self.heatSwitch.openHsw()
 
             self.heatSwitch.check_status()
