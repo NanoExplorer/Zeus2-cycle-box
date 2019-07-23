@@ -364,7 +364,11 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #read in files corresponding to sensornum and card
         #make numpy interpolator
         #run voltage through that.
-        v = np.mean(voltage) 
+        voltage = np.array(voltage)
+
+        v = np.mean(voltage[voltage<10]) #filter out 0xFFFF values that
+        #translate to 10.1V and indicate error conditions
+        
         #print(v,card,sensornum)
         #print(repr(v))
         if card =='Voltage': 
