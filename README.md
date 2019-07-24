@@ -1,6 +1,38 @@
 # Zeus2-cycle-box
 New housekeeping program written in Python for controlling and reading the Zeus2 thermometry
 
+# Usage
+This code runs on Python 3 and depends on the following packages:
+* pymongo
+* dnspython
+* labjack and the exodriver (or windows equivalent, available from the labjack website, only required on the computer running HK_server.py)
+* tabulate (for the live_table.py script)
+* scipy
+* numpy
+* matplotlib (for the live_plot script)
+
+Once these packages have been installed, plug the labjack into the computer that will be used for housekeeping and run HK_server.py.
+
+Make sure that a file called "mongostring" is created in the same directory as the pytho files that includes the ip address, username and password to the mongodb database in the format `mongodb_srv://<USERNAME>:<PASSWORD>@<HOSTNAME>/options` I don't know the full story, but this is what I'm using now for an externally hosted MongoDB database. I will need to migrate back to a local database before APEX.
+
+Make sure the mongodb database is set up following the directions in mongo/MongoDB Notes.
+
+You will see output confirming that the U6 stream was set up and that the script is reading data. It will take about 20 seconds before you see output (depending on the content of the sensors/settling time setting).
+
+Remember that output is not displayed by the HK_server script itself.
+
+## viewing ZEUS-2 status.
+You do not need to have labjack or the labjack driver installed.
+Again, make sure you have the mongostring settings file installed, and then run live_tables.py or live_plots.py. These will update in realtime and inform you of the current state of the instrument. 
+
+There's still a ways to go on this. You can't see many of the digital channels or what settings are currently set.
+
+## Changing settings
+There are several presets available in the `presets` directory. One must simply run `settings_upload.py presets/the_preset_that_you_want.json`. Use `settings_upload.py --help` to see override options that will let you easily change the PID parameters, set temperature for PID loop, or manual current set point and ramp rate.
+
+
+# Internals
+
 ## Outline
 Most of the important logic is in `HK_server.py`. It launches several threads. One thread talks to the labjack. One thread listens for changes to the settings database, and one thread uploads new data points to the thermometry database. The main thread coordinates all these threads, interpolating voltages into temperatures, deciding which sensors to read, etc. 
 
