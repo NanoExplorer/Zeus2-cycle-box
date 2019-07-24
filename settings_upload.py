@@ -12,24 +12,25 @@ parser.add_argument('-d', type=int, help="override the D term of the pid loop")
 parser.add_argument('-t', '--set-temp', type=float, help="override the set temp for the pid loop")
 parser.add_argument('-c', '--current', type=float, help="override the magnet current")
 parser.add_argument('-r', '--ramprate', type=float, help='override the magnet current ramp rate')
+parser.add_argument('--update-same-cycle',action='store_true')
 args=parser.parse_args()
 
 with open(args.settingsfile,'r') as jsonfile:
     settings=json.load(jsonfile)
 
-
+servo=settings['pid']
 if args.p is not None:
-    pass
+    servo['p']=args.p
 if args.i is not None:
-    pass
+    servo['i']=args.i
 if args.d is not None:
-    pass
+    servo['d']=args.d
 if args.set_temp is not None:
-    pass
+    servo['temp_set_point']=args.set_temp
 if args.current is not None:
-    pass
+    settings['magnet']['setpoint']=args.current
 if args.ramprate is not None:
-    pass
+    settings['magnet']['ramprate']=args.ramprate
 
 
 #client=MongoClient('localhost',27017)
@@ -43,8 +44,12 @@ collection=db.settings
 settings['timestamp'] = datetime.now(tz=timezone.utc)
 time=settings['cycle']['start_time']
 settings['cycle']['start_time']=datetime.fromisoformat(time)
+cycle = settings['cycle'] # less typing
+if cycle['heatswitch_delay'] >= cycle['duration']:
+    print("Heatswitch delay must be less than duration. ")
+    exit()
 
-if settings['cycle']['armed']==True:
+if settings['cycle']['armed']==True and not args.update_same_cycle:
     if settings['cycle']['start_time'] < settings['timestamp']:
         print("cycle start time must be in the future!")
         exit()

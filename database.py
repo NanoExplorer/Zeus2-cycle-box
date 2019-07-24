@@ -106,7 +106,8 @@ class ThermometryWatcherThread(threading.Thread):
                 self.newdata.put_nowait(doc)
 
 
-    def run(self):
+    def run(self): #[{"$match":self.live_query}
         cursor=self.db.thermometry.watch([{"$match":self.live_query}],max_await_time_ms=10000)
         for change in cursor:
+                #print("Got an update")
                 self.newdata.put_nowait(change['fullDocument'])
