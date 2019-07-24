@@ -19,6 +19,8 @@ args=parser.parse_args()
 with open(args.settingsfile,'r') as jsonfile:
     settings=json.load(jsonfile)
 
+#Modify the settings dictionary 
+#based on overrides given by user
 servo=settings['pid']
 if args.p is not None:
     servo['p']=args.p
