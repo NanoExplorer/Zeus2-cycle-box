@@ -12,7 +12,8 @@ from pid import PID
 from autocycle import AutoCycler
 from interpolators import Interpolators
 
-from common import getGRTSuffix
+from common import getGRTSuffix, CYCLE_MODE_SAFE_SET_POINT, CYCLE_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT, SERVO_MODE_SAFE_RAMP_RATE
+
 
 
 QUEUE_TIMEOUT=30 #Change to None in production.
@@ -182,13 +183,27 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
                 self.lastAutoCycleStatus = status
                 self.update_temperatures({'auto_cycle_status':status})
         elif settings["magnet"]["usePID"]:
-            self.switch_servo_cycle(True)
+            inCorrectMode=self.switch_servo_cycle(True)
             assert(temperature is not None)
-            current,ramprate = self.do_pid_step(settings['pid'],temperature)
+            if inCorrectMode:
+                current,ramprate = self.do_pid_step(settings['pid'],temperature)
+            else:
+                #we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
+                current=CYCLE_MODE_SAFE_SET_POINT
+                ramprate=CYCLE_MODE_SAFE_RAMP_RATE
         else:
-            self.switch_servo_cycle(settings['magnet']['servo_mode'])
-            current = settings["magnet"]["setpoint"]
-            ramprate = settings["magnet"]["ramprate"]
+            inCorrectMode = self.switch_servo_cycle(settings['magnet']['servo_mode'])
+            if inCorrectMode:
+                current = settings["magnet"]["setpoint"]
+                ramprate = settings["magnet"]["ramprate"]
+            else:
+                if self.lj.servoMode:
+                    ramprate = SERVO_MODE_SAFE_RAMP_RATE
+                    current =  SERVO_MODE_SAFE_SET_POINT
+                else:
+                    ramprate=CYCLE_MODE_SAFE_RAMP_RATE
+                    current =CYCLE_MODE_SAFE_SET_POINT
+
         self.lj.currentRamprate=ramprate
         self.lj.currentSetpoint=current
     def update_temperatures(self,tempdict):
@@ -208,6 +223,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             if self.current < 0.08:
                 self.lj.servoMode = new_mode
                 self.update_temperatures({'currently_in_servo': new_mode})
+        return (new_mode == self.lj.servoMode)
 
     def next_sensor(self,settings):
         """Decide which sensor needs to be read out next, and tell that to the lj
