@@ -155,13 +155,14 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
         self.pid.update(temperature)
         pid_fmt_str="{:.3f} {:.5f} {:.3f} {:.5f} {:.5f} {:.5f}"
-        self.update_temperatures({'PID_status': {
-                                'request_current':self.pid.output,
-                                'temp_now':temperature,
-                                'set_point':self.pid.SetPoint,
-                                'P_term':self.pid.PTerm,
-                                'I_term':self.pid.Ki*self.pid.ITerm,
-                                'D_term':self.pid.Kd * self.pid.DTerm}})
+        if 'debug' in pids and pids['debug']:
+            self.update_temperatures({'PID_status': {
+                                    'request_current':self.pid.output,
+                                    'temp_now':temperature,
+                                    'set_point':self.pid.SetPoint,
+                                    'P_term':self.pid.PTerm,
+                                    'I_term':self.pid.Ki*self.pid.ITerm,
+                                    'D_term':self.pid.Kd * self.pid.DTerm}})
         return(self.pid.output,pids['ramp_rate'])
 
 
