@@ -68,4 +68,4 @@ if settings['cycle']['armed']==True and not args.update_same_cycle:
         writeout['timestamp']=writeout['timestamp'].isoformat()
         autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
 
-#collection.insert_one(settings)
+collection.insert_one(settings)
