@@ -1,6 +1,6 @@
 #This script prints the sample settings json file and uploads a sample database entry 
 from pymongo import MongoClient, InsertOne
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import argparse
 import copy
@@ -64,8 +64,8 @@ if settings['cycle']['armed']==True and not args.update_same_cycle:
     cycle['cycle_ID']+=1
     with open(args.settingsfile,'w') as autocyclesettingsfile:
         writeout = copy.deepcopy(settings)
-        writeout['cycle']['start_time']=writeout['cycle']['start_time'].isoformat()
+        writeout['cycle']['start_time']=(writeout['cycle']['start_time']+timedelta(days=1)).isoformat()
         writeout['timestamp']=writeout['timestamp'].isoformat()
         autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
 
-collection.insert_one(settings)
+#collection.insert_one(settings)
