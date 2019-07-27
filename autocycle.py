@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta,timezone
 import subprocess
-
+from common import SERVO_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT
 
 class AutoCycler():
     def __init__(self):
@@ -55,8 +55,8 @@ class AutoCycler():
             # sets the ramp rate and set point of current
             #to safe values and asks for cycle mode to be activated.
             #This is kind of a "stage -1"
-            ramprate=3 #We're in servo mode, so high-ish ramprates are ok
-            current=0
+            ramprate=SERVO_MODE_SAFE_RAMP_RATE 
+            current=SERVO_MODE_SAFE_SET_POINT
 
         elif self.stage==0:
             #timeready = now > settings['start_time']
@@ -121,7 +121,7 @@ class AutoCycler():
                 self.done=True
                 self.stage=4
                 print("Autocycle entered stage 4 (autocycle finished!)")
-        #in stage 4 we won't even be called because self.done=True. Just in case though:
+        #in stage 4 HK_server won't call us because self.done=True. Just in case though:
         elif self.stage==4:
             servoMode=True
             current=0

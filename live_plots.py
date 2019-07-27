@@ -8,10 +8,16 @@ import queue
 import argparse
 class RollingNumpyArrays():
     def __init__(self,size):
+        #self.value is nan before the array has been fully filled
         self.value=np.ones(size)*np.nan
         self.time=np.full_like(self.value,
             matplotlib.dates.date2num(datetime.datetime.now()))
     def update(self,add_val,add_time):
+        #every time a new value isadded, we shift all 
+        #the other values to the left and add the new
+        #value at the end.
+
+        #Note fixed size of array and deletion of old values
         new_valuearr = np.empty_like(self.value)
         new_timearr = np.empty_like(self.time)
         new_timearr[1:] = self.time[:-1]
@@ -28,6 +34,10 @@ class animatedplot():
         #Writer = writers['ffmpeg']
         #writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
         self.size=size
+
+        #These queries do the same thing. They look for documents
+        #that contain at least one thermometry sensor reading.
+        #Otherwise we get swamped with magent current updates.
         q2={'$or':[{'fullDocument.2WIRE':{'$exists': True}},
         {'fullDocument.4WIRE':{'$exists': True}},
         {'fullDocument.GRT0-3':{'$exists': True}},
@@ -38,6 +48,8 @@ class animatedplot():
         previous_query=q,
         live_query=q2
         )
+        #Daemon mode means the twt will quit when the program
+        #exits, I think.
         self.twt.setDaemon(True)
         self.twt.start()
 
@@ -48,20 +60,26 @@ class animatedplot():
         self.sensor_names = self.sensors_id[:,1]
         self.sensor_names=np.append(self.sensor_names,["Current (A)","Voltage (V)"])
         self.sensor_arrays = [RollingNumpyArrays(size) for i in self.sensor_names]
+        #Every thermometry update contains a magnet update.
+        #So if you're reading out 3 sensors per card,
+        #you'll get 3 magnet updates for every sensor update
         self.sensor_arrays[-1] = RollingNumpyArrays(size*3)
         self.sensor_arrays[-2] = RollingNumpyArrays(size*3)
         if self.servo is not None:
             self.sensor_arrays[self.servo] = RollingNumpyArrays(size * 10)
             self.sensor_arrays[-1] = RollingNumpyArrays(size * 10)
             self.sensor_arrays[-2] = RollingNumpyArrays(size * 10)
+        
+        #To access the self.sensor_arrays value for 4WIRE3, 
+        #the index in that array is card_offsets['4WIRE']+3
         self.card_array_offsets={'2WIRE':12,
                 '4WIRE':8,
                 'GRT0-3':0,
                 'GRT4-7':0}
-        #self.plots = [[8,9,12+7],[1,5],[-2],
-        #              [8+2,8+3,12+4,12+5,12+6],[0,6,7],[-1]]
-        
+
         self.process_queue()
+        #Move grt0 and grt7 onto the "3rd cold stage" plot
+        #while servoing, just like we did in the labview program
         if self.servo is None:
             self.plots = [4,1,-1,-1,-1,1,4,4,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
         elif self.servo == 6:
@@ -84,19 +102,20 @@ class animatedplot():
 
         self.anim = FuncAnimation(self.fig,self.update,frames = np.arange(200),
                                   #init_func=self.animinit(),
-                                  interval=200,
+                                  interval=1200,
                                   blit=False
                                   )
 
         plt.subplots_adjust(hspace=.1)
         
-        plt.minorticks_on()
-        plt.locator_params(nbins=5)
+
         xfmt = matplotlib.dates.DateFormatter('%m-%d\n%H:%M:%S')
 
         for ax in self.axes:
             ax.grid()
-            ax.grid(which='minor')
+            #ax.grid(which='minor')
+            #ax.minorticks_on()
+            #ax.locator_params(nbins=5)
             ax.xaxis.set_major_formatter(xfmt)
             ax.legend()
         self.set_min_max()

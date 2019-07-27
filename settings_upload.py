@@ -1,8 +1,9 @@
 #This script prints the sample settings json file and uploads a sample database entry 
 from pymongo import MongoClient, InsertOne
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import argparse
+import copy
 
 parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
 parser.add_argument('settingsfile', type=str, help="the file to read settings from")
@@ -18,6 +19,8 @@ args=parser.parse_args()
 with open(args.settingsfile,'r') as jsonfile:
     settings=json.load(jsonfile)
 
+#Modify the settings dictionary 
+#based on overrides given by user
 servo=settings['pid']
 if args.p is not None:
     servo['p']=args.p
@@ -51,11 +54,18 @@ if cycle['heatswitch_delay'] >= cycle['duration']:
 
 if settings['cycle']['armed']==True and not args.update_same_cycle:
     if settings['cycle']['start_time'] < settings['timestamp']:
+        print(settings['timestamp'])
         print("cycle start time must be in the future!")
         exit()
-    confirm=input("Did you remember to increment the autocycle ID? [y/n]")
-    if confirm!='y':
-        print('aborting...')
+    c=input("are you sure you want to start a new cycle? [y/n]")
+    if c!='y':
+        print('exiting...')
         exit()
+    cycle['cycle_ID']+=1
+    with open(args.settingsfile,'w') as autocyclesettingsfile:
+        writeout = copy.deepcopy(settings)
+        writeout['cycle']['start_time']=(writeout['cycle']['start_time']+timedelta(days=1)).isoformat()
+        writeout['timestamp']=writeout['timestamp'].isoformat()
+        autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
 
 collection.insert_one(settings)

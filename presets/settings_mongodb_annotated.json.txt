@@ -24,7 +24,8 @@
         "p": 320, 
         "temp_set_point": 0.13,
         "i_windup_guard":20,
-        "ramp_rate":9
+        "ramp_rate":9,
+        "debug":false #optional. If present and true will send *lots* of pid data to the server. like, the P, I, and D terms, requested magnet current, and read out temperature at every pid update step.
     }, 
     "sensors": {
         "read": { "2WIRE":[5,6,7], #Each is a list of all the sensor numbers
