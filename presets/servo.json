@@ -20,7 +20,7 @@
         "d": 0, 
         "grt": 6, 
         "i": 16, 
-        "max_current": 12, 
+        "max_current": 13.5, 
         "p": 320, 
         "temp_set_point": 0.13,
         "ramp_rate":9
