@@ -3,7 +3,6 @@ import pymongo
 import threading
 import queue
 from datetime import datetime
-
 class SettingsWatcherThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -111,3 +110,58 @@ class ThermometryWatcherThread(threading.Thread):
         for change in cursor:
                 #print("Got an update")
                 self.newdata.put_nowait(change['fullDocument'])
+
+class EasyThermometry():
+    def __init__(self,
+                 npts,
+                 start_date=None,
+                 end_date=None,
+                 want_sensors='all'):
+        """Warning:
+        start_date, end_date, and want_sensors are nyi.
+        """
+        self.sensors = {"2WIRE":[[] for i in range(8)],
+                        "4WIRE":[[] for i in range(4)],
+                        "GRT":[[] for i in range(8)],
+                        "Current":[[]],
+                        "Voltage":[[]]}
+        if want_sensors=='all':
+            q={'$or':[
+                {'2WIRE':{'$exists': True}},
+                {'4WIRE':{'$exists': True}},
+                {'GRT0-3':{'$exists': True}},
+                {'GRT4-7':{'$exists': True}}
+                ]
+            }
+        else:
+            print('nyi')
+            raise RuntimeError('notyetimplemented')
+        with open("mongostring",'r') as mfile:
+            mstring=mfile.read()
+        client = MongoClient(mstring)
+        self.db=client.hk_data
+        c=self.db.thermometry.find(q).sort('timestamp',-1).limit(npts)
+        docs =[]
+        for doc in c:
+            docs.append(doc)
+        #I want the oldest documents first
+        #earlier mongo sorted so that newest docs are first
+        for doc in docs[::-1]:
+            for k in ['2WIRE','4WIRE','GRT0-3','GRT4-7',"Voltage","Current"]:
+                try:
+                    v=doc[k]
+                    self.process_sensor(k,v[0],v[1],doc['timestamp'])
+                except KeyError:
+                    pass
+    def process_sensor(self,card,num,temperature,time):
+        if card == 'Voltage':
+            num=0
+        elif card == 'Current':
+            num=0
+        elif card == "GRT0-3":
+            card="GRT"
+        elif card == "GRT4-7":
+            card="GRT"
+        self.sensors[card][num].append((time.timestamp(),temperature))
+
+
