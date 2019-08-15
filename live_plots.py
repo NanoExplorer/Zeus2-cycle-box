@@ -44,7 +44,7 @@ class animatedplot():
         {'fullDocument.GRT4-7':{'$exists': True}}]}
         q={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}
         self.servo=servo
-        self.twt = ThermometryWatcherThread(num_previous=800,
+        self.twt = ThermometryWatcherThread(num_previous=size*4,
         previous_query=q,
         live_query=q2
         )
@@ -178,9 +178,10 @@ class animatedplot():
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="view Zeus2 thermometry data in graphical plot form")
     parser.add_argument('-s','--servo',type=int,help="indicate you're in servo mode. Takes 1 integer argument: the GRT sensor you're servoing on")
+    parser.add_argument('-n','--numpts',type=int,help="Number of points to display on plot. Default 100",default=100)
     args= parser.parse_args()
     if args.servo is not None:
         print("in servo mode")
-        a = animatedplot(30,servo=args.servo)
+        a = animatedplot(int(args.numpts*3/10),servo=args.servo)
     else:
-        a = animatedplot(100)
+        a = animatedplot(args.numpts)
