@@ -1,12 +1,12 @@
 {
     "cycle": {
         "armed": true,
-        "cycle_ID": 7,
+        "cycle_ID": 8,
         "do_hsw_toggle": true,
-        "duration": 8,
+        "duration": 9,
         "heatswitch_delay": 4,
         "ramprate_down": 0,
-        "ramprate_up": 0.3,
+        "ramprate_up": 0.2,
         "setpoint": 9,
         "start_time": "2019-08-17T01:30:00-04:00"
     },
@@ -53,5 +53,5 @@
         "settling_time": 0.3,
         "slow_read_freq": 0.5
     },
-    "timestamp": "2019-07-26T00:33:31.081403+00:00"
+    "timestamp": "2019-08-17T05:27:45.964988+00:00"
 }
