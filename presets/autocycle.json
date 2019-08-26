@@ -1,14 +1,14 @@
 {
     "cycle": {
         "armed": true,
-        "cycle_ID": 5,
+        "cycle_ID": 11,
         "do_hsw_toggle": true,
-        "duration": 8,
-        "heatswitch_delay": 4,
+        "duration": 7,
+        "heatswitch_delay": 5,
         "ramprate_down": 0,
-        "ramprate_up": 0.3,
-        "setpoint": 9,
-        "start_time": "2019-07-25T23:00:00-04:00"
+        "ramprate_up": 0.2,
+        "setpoint": 8,
+        "start_time": "2019-08-24T23:59:00-04:00"
     },
     "magnet": {
         "ramprate": 0,
@@ -24,7 +24,7 @@
         "max_current": 12,
         "p": 320,
         "ramp_rate": 9,
-        "temp_set_point": 0.13,
+        "temp_set_point": 0.13
     },
     "sensors": {
         "fast_read_freq": 60,
@@ -53,5 +53,5 @@
         "settling_time": 0.3,
         "slow_read_freq": 0.5
     },
-    "timestamp": "2019-07-26T00:33:31.081403+00:00"
+    "timestamp": "2019-08-23T03:38:51.888673+00:00"
 }

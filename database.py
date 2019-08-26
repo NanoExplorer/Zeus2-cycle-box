@@ -136,11 +136,20 @@ class EasyThermometry():
         else:
             print('nyi')
             raise RuntimeError('notyetimplemented')
+        if start_date is not None or end_date is not None:
+            q={'$and':[q]}
+        if start_date is not None:
+            q['$and'].append({"timestamp":{"$gt":start_date}})
+        if end_date is not None:
+            q['$and'].append({'timestamp':{"$lt":end_date}})
         with open("mongostring",'r') as mfile:
             mstring=mfile.read()
         client = MongoClient(mstring)
         self.db=client.hk_data
-        c=self.db.thermometry.find(q).sort('timestamp',-1).limit(npts)
+        if npts != 0:
+            c=self.db.thermometry.find(q).sort('timestamp',-1).limit(npts)
+        else:
+            c=self.db.thermometry.find(q).sort('timestamp',-1)
         docs =[]
         for doc in c:
             docs.append(doc)

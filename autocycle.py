@@ -58,14 +58,13 @@ class AutoCycler():
             ramprate=SERVO_MODE_SAFE_RAMP_RATE 
             current=SERVO_MODE_SAFE_SET_POINT
 
-        elif self.stage==0:
+        elif self.stage==0 and now > settings['start_time']:
             #timeready = now > settings['start_time']
             #hswready = ??
-            if now > settings['start_time']:
-                if self.heatSwitch.ready:
-                    print("Closing heat switch in preparation for autocycle.")
-                self.heatSwitch.closeHsw()
-                #This will do nothing if the heat switch is not ready.
+            if self.heatSwitch.ready:
+                print("Closing heat switch in preparation for autocycle.")
+            self.heatSwitch.closeHsw()
+            #This will do nothing if the heat switch is not ready.
 
             self.heatSwitch.check_status()
             if self.heatSwitch.ready and self.heatSwitch.hswError is None and self.heatSwitch.hswClosed:
