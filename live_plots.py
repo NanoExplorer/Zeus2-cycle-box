@@ -66,7 +66,8 @@ class animatedplot():
         self.sensor_arrays[-1] = RollingNumpyArrays(size*3)
         self.sensor_arrays[-2] = RollingNumpyArrays(size*3)
         if self.servo is not None:
-            self.sensor_arrays[self.servo] = RollingNumpyArrays(size * 10)
+            for s in self.servo:
+                self.sensor_arrays[s] = RollingNumpyArrays(size * 10)
             self.sensor_arrays[-1] = RollingNumpyArrays(size * 10)
             self.sensor_arrays[-2] = RollingNumpyArrays(size * 10)
         
@@ -82,7 +83,7 @@ class animatedplot():
         #while servoing, just like we did in the labview program
         if self.servo is None:
             self.plots = [4,1,-1,-1,-1,1,4,4,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
-        elif self.servo == 6:
+        else:
             self.plots= [1,1,-1,-1,-1,1,4,1,0,0,3,3,-1,-1,-1,-1,-1,3,3,0,2,5]
         self.fig,axs = plt.subplots(2,3,sharex=True)
         self.fig.tight_layout()
@@ -132,8 +133,9 @@ class animatedplot():
                     maxs.append(np.max(rnparr.time[np.logical_not(np.isnan(rnparr.value))]))
             return min(mins),max(maxs)
         else:
-            servoarray = self.sensor_arrays[self.servo].value
-            servotime = self.sensor_arrays[self.servo].time
+
+            servoarray = self.sensor_arrays[self.servo[0]].value
+            servotime = self.sensor_arrays[self.servo[0]].time
             nonnantimes = servotime[np.logical_not(np.isnan(servoarray))]
             return min(nonnantimes),max(nonnantimes)
     def process_sensor(self,card,num,temperature,time):
@@ -177,7 +179,7 @@ class animatedplot():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="view Zeus2 thermometry data in graphical plot form")
-    parser.add_argument('-s','--servo',type=int,help="indicate you're in servo mode. Takes 1 integer argument: the GRT sensor you're servoing on")
+    parser.add_argument('-s','--servo',type=int,nargs='+',help="indicate you're in servo mode. Takes 1 integer argument: the sensor(s) you're reading fast")
     parser.add_argument('-n','--numpts',type=int,help="Number of points to display on plot. Default 100",default=100)
     args= parser.parse_args()
     if args.servo is not None:

@@ -32,14 +32,18 @@ class CurrentStatus():
 
     def printTable(self):
         tablestring=tabulate.tabulate(
-            [[x,y,z] for x,y,z in zip(self.sensor_wires,
+            [[x,y,round(z,ndigits(z))] for x,y,z in zip(self.sensor_wires,
                                      self.sensor_names,
                                       self.sensors_temp)],
             headers=["Sensor Wire",
                      "Sensor Name",
                      "Temperature (K)"])
         print(tablestring)
-
+def ndigits(num):
+    if num==0:
+        return 0
+    l=np.log10(abs(num))
+    return max(0,int(-l+4))
 def main():
     twt = ThermometryWatcherThread(num_previous=4,
         previous_query={'$or':[{'2WIRE':{'$exists': True}},{'4WIRE':{'$exists': True}},{'GRT0-3':{'$exists': True}},{'GRT4-7':{'$exists': True}}]}

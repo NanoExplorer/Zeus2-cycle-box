@@ -28,7 +28,7 @@
     "sensors": {
         "read": { "2WIRE":[5,6,7], 
                   "4WIRE":[0,1,2,3], 
-                  "GRT0-3":[0,1], 
+                  "GRT0-3":[0], 
                   "GRT4-7":[6] 
         },
         "slow_read_freq": 0.5, 
