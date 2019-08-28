@@ -1,30 +1,20 @@
 {
     "cycle": {
         "armed": true,
-        "cycle_ID": 11,
+        "cycle_ID": 13,
         "do_hsw_toggle": true,
         "duration": 7,
-        "heatswitch_delay": 5,
+        "heatswitch_delay": 4,
         "ramprate_down": 0,
-        "ramprate_up": 0.2,
-        "setpoint": 8,
-        "start_time": "2019-08-24T23:59:00-04:00"
+        "ramprate_up": 0.3,
+        "setpoint": 9,
+        "start_time": "2019-08-28T23:05:00-04:00"
     },
     "magnet": {
         "ramprate": 0,
         "servo_mode": true,
         "setpoint": 0,
         "usePID": false
-    },
-    "pid": {
-        "d": 0,
-        "grt": 6,
-        "i": 16,
-        "i_windup_guard": 20,
-        "max_current": 12,
-        "p": 320,
-        "ramp_rate": 9,
-        "temp_set_point": 0.13
     },
     "sensors": {
         "fast_read_freq": 60,
@@ -53,5 +43,5 @@
         "settling_time": 0.3,
         "slow_read_freq": 0.5
     },
-    "timestamp": "2019-08-23T03:38:51.888673+00:00"
+    "timestamp": "2019-08-28T15:24:04.632218+00:00"
 }

@@ -1,30 +1,9 @@
 {
-    "cycle": {
-        "armed": false, 
-        "do_hsw_toggle": true, 
-        "duration": 7, 
-        "heatswitch_delay": 3, 
-        "ramprate_down": 0.03, 
-        "ramprate_up": 0.3, 
-        "setpoint": 9.2, 
-        "start_time": "2014-03-12T13:37:27-05:00", 
-        "cycle_ID": 1 
-    }, 
     "magnet": {
         "ramprate": 1.25, 
         "servo_mode": true, 
         "setpoint": 0,
         "usePID": false
-    }, 
-    "pid": {
-        "d": 0, 
-        "grt": 6, 
-        "i": 16, 
-        "max_current": 12, 
-        "p": 320, 
-        "temp_set_point": 0.13,
-        "i_windup_guard":20,
-        "ramp_rate":9
     }, 
     "sensors": {
         "read": { "2WIRE":[5,6,7], 

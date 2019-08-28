@@ -1,15 +1,4 @@
 {
-    "cycle": {
-        "armed": false, 
-        "do_hsw_toggle": true, 
-        "duration": 8, 
-        "heatswitch_delay": 4, 
-        "ramprate_down": 0.03, 
-        "ramprate_up": 0.3, 
-        "setpoint": 9, 
-        "start_time": "2019-07-22T23:05:00-04:00", 
-        "cycle_ID": 1 
-    }, 
     "magnet": {
         "ramprate": 0.1, 
         "servo_mode": false, 
