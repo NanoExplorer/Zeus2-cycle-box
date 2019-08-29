@@ -3,7 +3,7 @@
         "armed": true,
         "cycle_ID": 13,
         "do_hsw_toggle": true,
-        "duration": 7,
+        "duration": 9,
         "heatswitch_delay": 4,
         "ramprate_down": 0,
         "ramprate_up": 0.3,
