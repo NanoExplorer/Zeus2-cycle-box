@@ -136,14 +136,14 @@ def write_settings(settings):
     with open('presets/lastsettings.json','w') as outfile:
         outfile.write(jstr)
 
-    #client=MongoClient('localhost',27017)
-    # with open("mongostring",'r') as mfile:
-    #     mstring=mfile.read()
-    # client = MongoClient(mstring)
-    # db=client.hk_data
-    # collection=db.settings
+    client=MongoClient('localhost',27017)
+    with open("mongostring",'r') as mfile:
+        mstring=mfile.read()
+    client = MongoClient(mstring)
+    db=client.hk_data
+    collection=db.settings
 
-    # collection.insert_one(settings)
+    collection.insert_one(settings)
 
 if __name__=="__main__":
     go()
