@@ -133,6 +133,8 @@ class EasyThermometry():
                 {'GRT4-7':{'$exists': True}}
                 ]
             }
+        elif want_sensors=='magnet':
+            q={'Current':{'$exists': True}}
         else:
             print('nyi')
             raise RuntimeError('notyetimplemented')
