@@ -96,18 +96,23 @@ def start_new_cycle(settings,onlinesettings,args):
     cycle = settings['cycle']
     time=cycle['start_time']    
     now= datetime.now(tz=timezone.utc)
+    localnow = datetime.now()
     if cycle['armed']==True and not args.update_same_cycle and args.settingsfile is not None:
         if time < now:
-            print(f"current time: {datetime.now()}")
+            print(f"current time: {localnow}")
             print(f"cycle start:  {time}")
             print("cycle start time must be in the future!")
             x=input("Do you want to set the date to today? [y/n]")
             if x == 'y':
-                newtime=time.replace(year=now.year,month=now.month,day=now.day)
+                newtime=time.replace(year=localnow.year,month=localnow.month,day=localnow.day)
                 if newtime < now:
-                    x=input("The start time would still be in the past. Set date to tomorrow? [y/n]")
-                    if x=="y":
-                        newtime=newtime.replace(day=now.day+1)
+                    print(f"current time: {now}")
+                    print(f"cycle start:  {newtime}")
+                    z=input("The start time would still be in the past. Set date to tomorrow? [y/n]")
+                    if z=="y":
+                        newtime=newtime.replace(day=localnow.day+1)
+                        print(f"current time: {now}")
+                        print(f"cycle start:  {newtime}")
                     else:
                         exit()
                 settings['cycle']['start_time'] = newtime
