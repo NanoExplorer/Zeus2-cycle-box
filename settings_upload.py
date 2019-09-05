@@ -5,6 +5,7 @@ import json
 import argparse
 import copy
 import database
+import sys
 
 def get_cmdline_args():
     parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
@@ -34,18 +35,7 @@ def go():
         with open(args.settingsfile,'r') as jsonfile:
             settings=json.load(jsonfile)
         onlinesettings=None
-    if args.settingsfile is None or len(settings)<5:
-        s=database.SettingsWatcherThread()
-        del s.settings['_id']
-        onlinesettings = copy.deepcopy(s.settings)
-        #if anything is present in the file, use it to override what's in the database
-        if 'cycle' not in settings:
-            #If the cycle settings aren't present, disarm the cycle.
-            s.settings['cycle']['armed']=False
-        s.settings.update(settings)
-        settings=s.settings
 
-    
     #Modify the settings dictionary 
     #based on overrides given by user
     servo=settings['pid']
@@ -71,11 +61,25 @@ def go():
         settings['cycle']['heatswitch_delay']=args.heatswitch_delay
     if args.set_point is not None:
         settings['cycle']['setpoint']=args.set_point
+
+    if args.settingsfile is None or len(settings)<5:
+        s=database.SettingsWatcherThread()
+        del s.settings['_id']
+        onlinesettings = copy.deepcopy(s.settings)
+        #if anything is present in the file, use it to override what's in the database
+        if 'cycle' not in settings:
+            #If the cycle settings aren't present, disarm the cycle.
+            s.settings['cycle']['armed']=False
+        s.settings.update(settings)
+        settings=s.settings
+
     sort_out_timestamps(settings)
 
     start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
-
-    write_settings(settings)
+    
+    #If there were no args, there can't be any changes to the settings, so don't write anything
+    if len(sys.argv) > 1:
+        write_settings(settings)
 
 def sort_out_timestamps(settings):
     """Modifies the settings argument"""
@@ -96,18 +100,23 @@ def start_new_cycle(settings,onlinesettings,args):
     cycle = settings['cycle']
     time=cycle['start_time']    
     now= datetime.now(tz=timezone.utc)
+    localnow = datetime.now()
     if cycle['armed']==True and not args.update_same_cycle and args.settingsfile is not None:
         if time < now:
-            print(f"current time: {datetime.now()}")
+            print(f"current time: {localnow}")
             print(f"cycle start:  {time}")
             print("cycle start time must be in the future!")
             x=input("Do you want to set the date to today? [y/n]")
             if x == 'y':
-                newtime=time.replace(year=now.year,month=now.month,day=now.day)
+                newtime=time.replace(year=localnow.year,month=localnow.month,day=localnow.day)
                 if newtime < now:
-                    x=input("The start time would still be in the past. Set date to tomorrow? [y/n]")
-                    if x=="y":
-                        newtime=newtime.replace(day=now.day+1)
+                    print(f"current time: {now}")
+                    print(f"cycle start:  {newtime}")
+                    z=input("The start time would still be in the past. Set date to tomorrow? [y/n]")
+                    if z=="y":
+                        newtime=newtime.replace(day=localnow.day+1)
+                        print(f"current time: {now}")
+                        print(f"cycle start:  {newtime}")
                     else:
                         exit()
                 settings['cycle']['start_time'] = newtime
