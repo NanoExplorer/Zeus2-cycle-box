@@ -5,6 +5,7 @@ import json
 import argparse
 import copy
 import database
+import sys
 
 def get_cmdline_args():
     parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
@@ -34,18 +35,7 @@ def go():
         with open(args.settingsfile,'r') as jsonfile:
             settings=json.load(jsonfile)
         onlinesettings=None
-    if args.settingsfile is None or len(settings)<5:
-        s=database.SettingsWatcherThread()
-        del s.settings['_id']
-        onlinesettings = copy.deepcopy(s.settings)
-        #if anything is present in the file, use it to override what's in the database
-        if 'cycle' not in settings:
-            #If the cycle settings aren't present, disarm the cycle.
-            s.settings['cycle']['armed']=False
-        s.settings.update(settings)
-        settings=s.settings
 
-    
     #Modify the settings dictionary 
     #based on overrides given by user
     servo=settings['pid']
@@ -71,11 +61,25 @@ def go():
         settings['cycle']['heatswitch_delay']=args.heatswitch_delay
     if args.set_point is not None:
         settings['cycle']['setpoint']=args.set_point
+
+    if args.settingsfile is None or len(settings)<5:
+        s=database.SettingsWatcherThread()
+        del s.settings['_id']
+        onlinesettings = copy.deepcopy(s.settings)
+        #if anything is present in the file, use it to override what's in the database
+        if 'cycle' not in settings:
+            #If the cycle settings aren't present, disarm the cycle.
+            s.settings['cycle']['armed']=False
+        s.settings.update(settings)
+        settings=s.settings
+
     sort_out_timestamps(settings)
 
     start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
-
-    write_settings(settings)
+    
+    #If there were no args, there can't be any changes to the settings, so don't write anything
+    if len(sys.argv) > 1:
+        write_settings(settings)
 
 def sort_out_timestamps(settings):
     """Modifies the settings argument"""

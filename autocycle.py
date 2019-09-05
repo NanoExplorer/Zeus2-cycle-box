@@ -11,7 +11,7 @@ class AutoCycler():
         #stage 3 is hsw open / ramping down (includes cold)
         #stage 3 + done means that the thingy is now cold.
         self.stage = 0
-        self.heatSwitch = HeatSwitch()
+        self.heatSwitch = HeatSwitch() 
         self.cycleID=-1
         self.done=False
 
@@ -34,6 +34,8 @@ class AutoCycler():
             self.stage=0
             self.done=False
             self.cycleID=settings['cycle_ID']
+            self.heatSwitch= HeatSwitch()
+            #Otherwise heat switch errors from prev. cycles can ruin future cycles.
          
 
 
