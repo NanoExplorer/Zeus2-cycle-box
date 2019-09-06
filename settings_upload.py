@@ -5,6 +5,7 @@ import json
 import argparse
 import copy
 import database
+import sys
 
 def get_cmdline_args():
     parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
@@ -34,12 +35,13 @@ def go():
         with open(args.settingsfile,'r') as jsonfile:
             settings=json.load(jsonfile)
         onlinesettings=None
+
     if args.settingsfile is None or len(settings)<5:
         s=database.SettingsWatcherThread()
         del s.settings['_id']
         onlinesettings = copy.deepcopy(s.settings)
         #if anything is present in the file, use it to override what's in the database
-        if 'cycle' not in settings:
+        if 'cycle' not in settings and not args.update_same_cycle:
             #If the cycle settings aren't present, disarm the cycle.
             s.settings['cycle']['armed']=False
         s.settings.update(settings)
@@ -73,9 +75,19 @@ def go():
         settings['cycle']['setpoint']=args.set_point
     sort_out_timestamps(settings)
 
-    start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
-
-    write_settings(settings)
+    onlinesettings=start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
+    writeout = copy.deepcopy(settings)
+    #If there were no args, there can't be any changes to the settings, so don't write anything
+    if len(sys.argv) > 1:
+        write_settings(settings,onlinesettings)
+    
+    writeout['cycle']['start_time']=writeout['cycle']['start_time'].isoformat()
+    writeout['timestamp']=writeout['timestamp'].isoformat()
+    #print(writeout)
+    jstr=json.dumps(writeout, indent=4, sort_keys=True)
+    print(jstr)
+    with open('presets/lastsettings.json','w') as outfile:
+        outfile.write(jstr)
 
 def sort_out_timestamps(settings):
     """Modifies the settings argument"""
@@ -125,22 +137,39 @@ def start_new_cycle(settings,onlinesettings,args):
         if onlinesettings is None:
             s=database.SettingsWatcherThread()
             onlinesettings = s.settings
+            del onlinesettings['_id']
         cycle['cycle_ID']=onlinesettings['cycle']['cycle_ID']+1
         # with open(args.settingsfile,'w') as autocyclesettingsfile:
         #     writeout = copy.deepcopy(settings)
         #     writeout['cycle']['start_time']=writeout['cycle']['start_time'].isoformat()
         #     writeout['timestamp']=writeout['timestamp'].isoformat()
         #     autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
+    return onlinesettings
+# from https://stackoverflow.com/questions/27265939/comparing-python-dictionaries-and-nested-dictionaries#27266178
+def findDiff(d1, d2, path=""):
+    for k in d1.keys():
+        if not k in d2:
+            print (path, ":")
+            print (k + " as key not in d2", "\n")
+        else:
+            if type(d1[k]) is dict:
+                if path == "":
+                    nested_path = k
+                else:
+                    nested_path = path + "->" + k
+                findDiff(d1[k],d2[k], nested_path)
+            else:
+                if d1[k] != d2[k]:
+                    if path!="":
+                        print(f"{path}: {k} changed from {d1[k]} to {d2[k]}")
+                    else:
+                        print(f"{k} changed from {d1[k]} to {d2[k]}")
+def write_settings(settings,onlinesettings):
 
-def write_settings(settings):
-    writeout = copy.deepcopy(settings)
-    writeout['cycle']['start_time']=writeout['cycle']['start_time'].isoformat()
-    writeout['timestamp']=writeout['timestamp'].isoformat()
-    jstr=json.dumps(writeout, indent=4, sort_keys=True)
-    print(jstr)
-    with open('presets/lastsettings.json','w') as outfile:
-        outfile.write(jstr)
-
+    findDiff(onlinesettings,settings)
+    x=input("Accept these changes? [y/n]")
+    if x!= 'y':
+        exit()
     client=MongoClient('localhost',27017)
     with open("mongostring",'r') as mfile:
         mstring=mfile.read()

@@ -3,12 +3,12 @@
         "armed": true,
         "cycle_ID": 13,
         "do_hsw_toggle": false,
-        "duration": 5,
-        "heatswitch_delay": 2.15,
+        "duration": 6,
+        "heatswitch_delay": 3.5,
         "ramprate_down": 0,
         "ramprate_up": 0.27,
         "setpoint": 9,
-        "start_time": "2019-09-02T02:00:00-04:00"
+        "start_time": "2019-08-28T02:00:00-04:00"
     },
     "magnet": {
         "ramprate": 0,
