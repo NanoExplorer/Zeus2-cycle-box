@@ -4,7 +4,6 @@ import queue
 import copy
 import sys
 import signal
-import traceback
 import logging
 from database import SettingsWatcherThread, DatabaseUploaderThread
 from labjack import LabJackController
@@ -360,14 +359,11 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
 
 
         except queue.Empty:
-            print("Queue is empty?")
+            logging.exception("Queue is empty?")
         except Exception:
-            traceback.print_exc()
-            self.stop()
+            logging.exception("Something is very wrong.")
         if not self.lj.data.empty():
-            print("""[WARN] The logic thread may be behind by up to {} records.
-[WARN] Don't panic unless that number is increasing quickly,
-[WARN] or stays very large for long periods of time""".format(self.lj.data.qsize()))
+            logging.warning("Logic thread behind by {} records."format(self.lj.data.qsize()))
             #Use the following if it becomes clear that the logic thread really cannot keep up.
             # n_records_skipped=0
             # try:
@@ -410,7 +406,7 @@ def main():
     worker=LogicClass(lj)
 
     # Start the stream and begin loading the result into a Queue
-    print("starting lj thread")
+    logging.info("starting lj thread")
 
     lj.start()
     worker.run()#Since the worker isn't actually a thread, this passes the
@@ -420,7 +416,22 @@ def main():
     
 
 if __name__ == "__main__":
-    logging.basicConfig(format='%(levelname)s %(asctime)s %(message)s')
+    f=logging.formatter('[%(levelname)-5.5s] %(asctime)s %(message)s')
+    
+    logger= logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    timestring = datetime.strftime("%Y-%m-%d-%H.%M")
+
+    filewriter = logging.FileHandler("logs/{}.log".format(timestring))
+    filewriter.setFormatter(f)
+    filewriter.setLevel(logging.INFO)
+    logger.addHandler(filewriter)
+
+    consolewriter = logging.StreamHandler()
+    consolewriter.setLevel(logging.DEBUG)
+    consolewriter.setFormatter(f)
+    logger.addHandler(consolewriter)
+
     signal.signal(signal.SIGINT,ctrlc_handler)
     main()
 

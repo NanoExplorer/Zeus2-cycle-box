@@ -3,6 +3,8 @@ import pymongo
 import threading
 import queue
 from datetime import datetime
+import logging
+import time
 class SettingsWatcherThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -32,6 +34,16 @@ class SettingsWatcherThread(threading.Thread):
             #print(self.settings)
 
     def run(self):
+        while True:
+            #This infinite loop should only execute once
+            try:
+                watch_for_changes()
+            except:
+                logging.exception("settings watcher experienced error")
+                time.sleep(10)
+                self.__init__()
+
+    def watch_for_changes(self):
         cursor=self.settingsdb.watch()
         #This returns an iterable that blocks until the database changes. Then it returns
         #an object describing the change. I'll be adding whole documents to the database,
@@ -67,7 +79,12 @@ class DatabaseUploaderThread(threading.Thread):
 
     def run(self):
         while self.keepGoing:
-            self.upload()
+            try:
+                self.upload()
+            except:
+                logging.exception("thermometry uploader experienced an error")
+                time.sleep(10)
+                self.__init__()
 
     def upload(self):
         try:
@@ -75,7 +92,7 @@ class DatabaseUploaderThread(threading.Thread):
             data.update({'timestamp':datetime.now()})
             self.thermometrydb.insert_one(data)
         except queue.Empty:
-            print("Upload queue is empty?")
+            logging.exception("Upload queue is empty?")
 
 
 class ThermometryWatcherThread(threading.Thread):

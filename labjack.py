@@ -1,7 +1,7 @@
 import threading
 import u6
 import queue
-import traceback
+import logging
 import copy
 from datetime import datetime
 
@@ -90,25 +90,23 @@ class LabJackController(threading.Thread):
                 self.diosIn[9]=1 #if we're not reading any sensors on that card, disable it
             for dio in self.diosIn:
                 if dio > 1 or dio < 0:
-                    print("Houston, we have a problem. Someone passed in an invalid sensor number!")
-                    print(self.read0to3,self.read4to7,self.read2wire,self.read4wire)
-                    print(self.diosIn)
+                    logging.error("Invalid sensor number! \n {} {} {} {} \n {}".format(self.read0to3,self.read4to7,self.read2wire,self.read4wire,self.diosIn))
 
     def run(self):
         try:
             self.main_loop()
         except:
-            traceback.print_exc()
+            logging.exception("Exception in labjack.py")
         finally:
             self.device.close()
 
     def main_loop(self):
-        print("reading stream data")
+        logging.info("reading stream data")
         self.keepGoing = True
         try:
             self.device.streamStart()
         except u6.LowlevelErrorException:
-            print("cleaned up evil labjack error")
+            logging.info("cleaned up evil labjack error")
             self.device.streamStop()
             self.device.close()
             self.device = init_device()
@@ -121,10 +119,10 @@ class LabJackController(threading.Thread):
                 returnDict = next(self.device.streamData(convert = False))
                 self.data.put_nowait(copy.deepcopy(returnDict))
                 if returnDict['errors']>0:
-                    print(f"num errors: {returnDict['errors']} at {datetime.now()}")
+                    logging.debug(f"num errors: {returnDict['errors']} at {datetime.now()}")
 
                 if returnDict['missed']>0:
-                    print(f"Missed {returnDict['missed']} samples at {datetime.now()}")
+                    logging.debug(f"Missed {returnDict['missed']} samples at {datetime.now()}")
                 #write the voltages to control magnet current and ramp rate
                 #I'm using __future__ division, so I don't have to worry about floating point
                 #issues when dividing:
@@ -141,17 +139,15 @@ class LabJackController(threading.Thread):
                 self.magnetBoxManual=self.device.getDIState(19) ==1
 
             except u6.LowlevelErrorException:
-                print("EVIL LABJACK ERROR!!!")
+                logging.warning("EVIL LABJACK ERROR!!!")
                 self.device.streamStop()
                 self.device.close()
                 self.device=init_device()
                 self.device.streamStart()
-                print("Evil labjack error resolved successfully. No need to worry")
+                logging.warning("Evil labjack error resolved successfully. No need to worry")
 
-        print("stream stopped.")
+        logging.info("stream stopped.")
         self.device.streamStop()
-
-        print("%s samples were lost due to errors." % self.missed)
 
 
 def init_device():
@@ -160,7 +156,7 @@ def init_device():
     ## For applying the proper calibration to readings.
     d.getCalibrationData()
     #
-    print("configuring U6 stream")
+    logging.info("configuring U6 stream")
     d.streamConfig(NumChannels = 6,
                    ChannelNumbers = [ 0,2,4,6,8,10 ], 
                    ChannelOptions = [ 128,128,128,128,128,128 ],
