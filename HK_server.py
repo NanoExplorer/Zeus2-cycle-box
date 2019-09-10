@@ -5,7 +5,7 @@ import copy
 import sys
 import signal
 import traceback
-import tabulate
+import logging
 from database import SettingsWatcherThread, DatabaseUploaderThread
 from labjack import LabJackController
 from pid import PID 
@@ -420,7 +420,7 @@ def main():
     
 
 if __name__ == "__main__":
-    
+    logging.basicConfig(format='%(levelname)s %(asctime)s %(message)s')
     signal.signal(signal.SIGINT,ctrlc_handler)
     main()
 

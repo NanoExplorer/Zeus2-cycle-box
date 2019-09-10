@@ -7,8 +7,8 @@
         "heatswitch_delay": 3,
         "ramprate_down": 0,
         "ramprate_up": 0.3,
-        "setpoint": 8,
-        "start_time": "2019-08-16T10:15:00-04:00"
+        "setpoint": 9,
+        "start_time": "2019-08-16T08:30:00-04:00"
     },
     "magnet": {
         "ramprate": 0,
