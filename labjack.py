@@ -3,7 +3,6 @@ import u6
 import queue
 import logging
 import copy
-from datetime import datetime
 
 class LabJackController(threading.Thread):
     """
@@ -119,10 +118,10 @@ class LabJackController(threading.Thread):
                 returnDict = next(self.device.streamData(convert = False))
                 self.data.put_nowait(copy.deepcopy(returnDict))
                 if returnDict['errors']>0:
-                    logging.debug(f"num errors: {returnDict['errors']} at {datetime.now()}")
+                    logging.debug(f"num errors: {returnDict['errors']}")
 
                 if returnDict['missed']>0:
-                    logging.debug(f"Missed {returnDict['missed']} samples at {datetime.now()}")
+                    logging.debug(f"Missed {returnDict['missed']}")
                 #write the voltages to control magnet current and ramp rate
                 #I'm using __future__ division, so I don't have to worry about floating point
                 #issues when dividing:

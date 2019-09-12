@@ -37,7 +37,7 @@ class SettingsWatcherThread(threading.Thread):
         while True:
             #This infinite loop should only execute once
             try:
-                watch_for_changes()
+                self.watch_for_changes()
             except:
                 logging.exception("settings watcher experienced error")
                 time.sleep(10)

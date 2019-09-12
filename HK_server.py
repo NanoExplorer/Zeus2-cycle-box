@@ -363,7 +363,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         except Exception:
             logging.exception("Something is very wrong.")
         if not self.lj.data.empty():
-            logging.warning("Logic thread behind by {} records."format(self.lj.data.qsize()))
+            logging.warning("Logic thread behind by {} records.".format(self.lj.data.qsize()))
             #Use the following if it becomes clear that the logic thread really cannot keep up.
             # n_records_skipped=0
             # try:
@@ -416,11 +416,11 @@ def main():
     
 
 if __name__ == "__main__":
-    f=logging.formatter('[%(levelname)-5.5s] %(asctime)s %(message)s')
+    f=logging.Formatter('[%(levelname)-5.5s] %(asctime)s %(message)s')
     
     logger= logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    timestring = datetime.strftime("%Y-%m-%d-%H.%M")
+    timestring = datetime.now().strftime("%Y-%m-%d-%H.%M")
 
     filewriter = logging.FileHandler("logs/{}.log".format(timestring))
     filewriter.setFormatter(f)
