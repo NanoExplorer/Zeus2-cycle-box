@@ -1,0 +1,164 @@
+Missed 106 samples at 2019-09-10 04:43:09.475547
+Exception in thread Thread-2:
+Traceback (most recent call last):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1222, in _retry_with_session
+    writable_server_selector)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 226, in select_server
+    address))
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 184, in select_servers
+    selector, server_timeout, address)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 200, in _select_servers_loop
+    self._error_message(selector))
+pymongo.errors.ServerSelectionTimeoutError: No primary available for writes
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\threading.py"
+, line 926, in _bootstrap_inner
+    self.run()
+  File "C:\Users\ZEUSII\Documents\nonsense\Zeus2-cycle-box\database.py", line 70
+, in run
+    self.upload()
+  File "C:\Users\ZEUSII\Documents\nonsense\Zeus2-cycle-box\database.py", line 76
+, in upload
+    self.thermometrydb.insert_one(data)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\collection.py", line 700, in insert_one
+    session=session),
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\collection.py", line 614, in _insert
+    bypass_doc_val, session)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\collection.py", line 602, in _insert_one
+    acknowledged, _insert_command, session)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1280, in _retryable_write
+    return self._retry_with_session(retryable, func, s, None)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1239, in _retry_with_session
+    raise last_error
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1233, in _retry_with_session
+    return func(session, sock_info, retryable)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\collection.py", line 597, in _insert_command
+    retryable_write=retryable_write)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 589, in command
+    self._raise_connection_failure(error)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 748, in _raise_connection_failure
+    _raise_connection_failure(self.address, error)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 283, in _raise_connection_failure
+    raise AutoReconnect(msg)
+pymongo.errors.AutoReconnect: zeus2-shard-00-01-ebh30.mongodb.net:27017: [WinErr
+or 10060] A connection attempt failed because the connected party did not proper
+ly respond after a period of time, or established connection failed because conn
+ected host has failed to respond
+
+Exception in thread Thread-3:
+Traceback (most recent call last):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 615, in receive_message
+    self.max_message_size)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\network.py", line 181, in receive_message
+    _receive_data_on_socket(sock, 16))
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\network.py", line 240, in _receive_data_on_socket
+    chunk_length = sock.recv_into(mv[bytes_read:])
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\ssl.py", line
+ 1071, in recv_into
+    return self.read(nbytes, buffer)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\ssl.py", line
+ 929, in read
+    return self._sslobj.read(len, buffer)
+TimeoutError: [WinError 10060] A connection attempt failed because the connected
+ party did not properly respond after a period of time, or established connectio
+n failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 254, in try_next
+    change = self._cursor._try_next(True)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\command_cursor.py", line 307, in _try_next
+    self._refresh()
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\command_cursor.py", line 243, in _refresh
+    self.__max_await_time_ms))
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\command_cursor.py", line 138, in __send_message
+    operation, address=self.__address)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1177, in _send_message_with_response
+    exhaust)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1188, in _reset_on_error
+    return func(*args, **kwargs)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\server.py", line 106, in send_message_with_response
+    reply = sock_info.receive_message(request_id)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 617, in receive_message
+    self._raise_connection_failure(error)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 748, in _raise_connection_failure
+    _raise_connection_failure(self.address, error)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\pool.py", line 283, in _raise_connection_failure
+    raise AutoReconnect(msg)
+pymongo.errors.AutoReconnect: zeus2-shard-00-01-ebh30.mongodb.net:27017: [WinErr
+or 10060] A connection attempt failed because the connected party did not proper
+ly respond after a period of time, or established connection failed because conn
+ected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\threading.py"
+, line 926, in _bootstrap_inner
+    self.run()
+  File "C:\Users\ZEUSII\Documents\nonsense\Zeus2-cycle-box\database.py", line 39
+, in run
+    for change in cursor:
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 204, in next
+    doc = self.try_next()
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 256, in try_next
+    self._resume()
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 175, in _resume
+    self._cursor = self._create_cursor()
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 166, in _create_cursor
+    explicit_session=self._session is not None
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\change_stream.py", line 121, in _run_aggregation_cmd
+    with client._socket_for_reads(read_preference) as (sock_info, slave_ok):
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\contextlib.py
+", line 112, in __enter__
+    return next(self.gen)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\mongo_client.py", line 1135, in _socket_for_reads
+    server = topology.select_server(read_preference)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 226, in select_server
+    address))
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 184, in select_servers
+    selector, server_timeout, address)
+  File "C:\Users\ZEUSII\AppData\Local\Programs\Python\Python37\lib\site-packages
+\pymongo\topology.py", line 200, in _select_servers_loop
+    self._error_message(selector))
+pymongo.errors.ServerSelectionTimeoutError: No replica set members match selecto
+r "Primary()"

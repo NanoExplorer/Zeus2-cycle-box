@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta,timezone
 import subprocess
 from common import SERVO_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT
+import logging
 
 class AutoCycler():
     def __init__(self):
@@ -30,7 +31,7 @@ class AutoCycler():
         if self.cycleID!=settings['cycle_ID']:
             #This activates when we've moved on to a new cycle, so reset settings to
             #initial values.
-            print("Autocycle armed. Waiting until start_time")
+            logging.info("Autocycle armed. Waiting until start_time")
             self.stage=0
             self.done=False
             self.cycleID=settings['cycle_ID']
@@ -64,13 +65,13 @@ class AutoCycler():
             #timeready = now > settings['start_time']
             #hswready = ??
             if self.heatSwitch.ready:
-                print("Closing heat switch in preparation for autocycle.")
+                logging.info("Closing heat switch in preparation for autocycle.")
             self.heatSwitch.closeHsw()
             #This will do nothing if the heat switch is not ready.
 
             self.heatSwitch.check_status()
             if self.heatSwitch.ready and self.heatSwitch.hswError is None and self.heatSwitch.hswClosed:
-                print("Hsw successfully closed. Autocycle ntering stage 1 - wait for hsw toggle.")
+                logging.info("Hsw successfully closed. Autocycle ntering stage 1 - wait for hsw toggle.")
                 self.stage=1
                
             #The heat switch hasn't successfully closed yet, so the default values will be kept
@@ -86,13 +87,13 @@ class AutoCycler():
             if now > settings['start_time']+timedelta(hours=settings['heatswitch_delay']):
                 if settings['do_hsw_toggle']:
                     if self.heatSwitch.ready:
-                        print("Starting hsw toggle")
+                        logging.info("Starting hsw toggle")
                     self.heatSwitch.toggleHsw()
 
                 self.heatSwitch.check_status()
                 if not settings['do_hsw_toggle'] or (self.heatSwitch.ready and self.heatSwitch.hswError is None):
                     self.stage=2
-                    print("Hsw toggle complete. Autocycle entering stage 2 - wait for rampdown.")
+                    logging.info("Hsw toggle complete. Autocycle entering stage 2 - wait for rampdown.")
                     #self.hswRunning = False
             #This has (may have?) an edge case: (DOUBLE CHECK - It looks like this might be fixed.)
             #if the heat switch malfunctions while toggling,
@@ -105,12 +106,12 @@ class AutoCycler():
             ramprate=settings['ramprate_up']
             if now>settings['start_time']+timedelta(hours=settings['duration']):
                 if self.heatSwitch.ready:
-                    print("Opening hsw in preparation for demag.")
+                    logging.info("Opening hsw in preparation for demag.")
                 self.heatSwitch.openHsw()
 
             self.heatSwitch.check_status()
             if self.heatSwitch.hswClosed==False and self.heatSwitch.ready and self.heatSwitch.hswError is None:
-                print("Hsw opened successfully. Autocycle entering stage 3 - drain current.")
+                logging.info("Hsw opened successfully. Autocycle entering stage 3 - drain current.")
                 self.stage=3
             
         elif self.stage==3:
@@ -121,7 +122,7 @@ class AutoCycler():
             if servoModeIn:
                 self.done=True
                 self.stage=4
-                print("Autocycle entered stage 4 (autocycle finished!)")
+                logging.info("Autocycle entered stage 4 (autocycle finished!)")
         #in stage 4 HK_server won't call us because self.done=True. Just in case though:
         elif self.stage==4:
             servoMode=True
@@ -163,11 +164,11 @@ class HeatSwitch():
             else:
                 stdout,stderr=self.pobject.communicate()
                 self.log.append((stdout,stderr,rc))
-                print(stdout,stderr)
+                logging.info("Motor status: \n {} \n {}".format(stdout,stderr))
                 self.hswError=rc
                 self.pobject=None
                 if self.numErrs < 3:
-                    print("MOTOR ERROR! Tryin' again...")
+                    logging.info("Trying motor move again...")
                     self.numErrs += 1
                     self.command(override=True)
                 return False
@@ -180,7 +181,7 @@ class HeatSwitch():
             #some threads, so I'm scared to try to integrate it.
             #IN ADDITION I just migrated all this code to python3, and no way am I going
             #to try that with the automatic heatswitch code.
-            self.pobject=subprocess.Popen(['python2','heatswitch_automatic.py',command],
+            self.pobject=subprocess.Popen(['C:\Python27\pythonw.exe','heatswitch_automatic.py',command],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
             return True
