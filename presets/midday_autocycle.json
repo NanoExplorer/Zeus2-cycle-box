@@ -4,11 +4,11 @@
         "cycle_ID": 6,
         "do_hsw_toggle": false,
         "duration": 4,
-        "heatswitch_delay": 3,
+        "heatswitch_delay": 1.5,
         "ramprate_down": 0,
         "ramprate_up": 0.3,
-        "setpoint": 9,
-        "start_time": "2019-08-16T08:30:00-04:00"
+        "setpoint": 8,
+        "start_time": "2019-08-16T14:55:00-04:00"
     },
     "magnet": {
         "ramprate": 0,
