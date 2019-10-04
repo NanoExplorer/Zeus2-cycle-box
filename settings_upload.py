@@ -104,32 +104,52 @@ def sort_out_timestamps(settings):
         print("Heatswitch delay must be less than duration. ")
         exit()
 
+def print_cyclestart(time,now,hrsfromnow):
+    print(f"current time: {now}")
+    print(f"cycle start:  {time}")
+    print(f"Cycle would start {hrsfromnow:.1f} hours from now")
+
+def handle_future(time,now,mode="set_today"):
+    hrsfromnow = (time-now).total_seconds()/3600
+    if hrsfromnow < 0:
+        print_cyclestart(time,now,hrsfromnow)
+
+    if -1 < hrsfromnow <= 0:
+        x=input("Start time is in the near past. Continue with this start time? (y/n)")
+        if x == 'y':
+            return time
+
+    if hrsfromnow < 0:
+        if mode=="set_today":
+            print("cycle start time must be in the future!")
+            x=input("Do you want to set the date to today? [y/n]")
+        elif mode=="tomorrow":
+            print("start time is still in the past.")
+            x=input("Do you want to set the day to tomorrow? [y/n]")
+        if x == 'y':
+            if mode=="set_today":
+                newtime=time.replace(year=now.year,month=now.month,day=now.day)
+            elif mode=="tomorrow":
+                newtime=time+timedelta(days=1)
+        else:
+            print("exiting...")
+            exit()
+    return newtime
+
+
 def start_new_cycle(settings,onlinesettings,args):
     cycle = settings['cycle']
     time=cycle['start_time']    
-    now= datetime.now(tz=timezone.utc)
-    localnow = datetime.now()
+    now= datetime.now(tz=time.tzinfo)
+    #localnow = datetime.now()
     if cycle['armed']==True and not args.update_same_cycle and args.settingsfile is not None:
-        if time < now:
-            print(f"current time: {localnow}")
-            print(f"cycle start:  {time}")
-            print("cycle start time must be in the future!")
-            x=input("Do you want to set the date to today? [y/n]")
-            if x == 'y':
-                newtime=time.replace(year=localnow.year,month=localnow.month,day=localnow.day)
-                if newtime < now:
-                    print(f"current time: {now}")
-                    print(f"cycle start:  {newtime}")
-                    z=input("The start time would still be in the past. Set date to tomorrow? [y/n]")
-                    if z=="y":
-                        newtime=newtime.replace(day=localnow.day+1)
-                        print(f"current time: {now}")
-                        print(f"cycle start:  {newtime}")
-                    else:
-                        exit()
-                settings['cycle']['start_time'] = newtime
-            else:
-                exit()
+        time=handle_future(time,now)
+        time=handle_future(time,now,mode="tomorrow")
+        hrsfromnow=(time-now).total_seconds()/3600
+        print_cyclestart(time,now,hrsfromnow)
+        if hrsfromnow > 12:
+            print("*********WARNING: cycle start time is far in the future**********")
+        settings['cycle']['start_time'] = time
         c=input("are you sure you want to start a new cycle? [y/n]")
         if c!='y':
             print('exiting...')
@@ -178,6 +198,7 @@ def write_settings(settings,onlinesettings):
     collection=db.settings
 
     collection.insert_one(settings)
-
+    #print("WARNING: in testing mode. Nothing modified.")
+    #exit()
 if __name__=="__main__":
     go()
