@@ -128,13 +128,13 @@ def handle_future(time,now,mode="set_today"):
             x=input("Do you want to set the day to tomorrow? [y/n]")
         if x == 'y':
             if mode=="set_today":
-                newtime=time.replace(year=now.year,month=now.month,day=now.day)
+                time=time.replace(year=now.year,month=now.month,day=now.day)
             elif mode=="tomorrow":
-                newtime=time+timedelta(days=1)
+                time=time+timedelta(days=1)
         else:
             print("exiting...")
             exit()
-    return newtime
+    return time
 
 
 def start_new_cycle(settings,onlinesettings,args):
