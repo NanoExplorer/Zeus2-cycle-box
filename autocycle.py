@@ -43,13 +43,13 @@ class AutoCycler():
         #This sets reasonable default values for the magnet current and ramp rate. 
         current=settings['setpoint']
         ramprate=0
-        now = datetime.now(tz=datetime.timeozne.utc)
+        now = datetime.now(tz=timezone.utc)
         # if self.heatSwitch.hswError is not None:
         #     #If the heat switch had an error, best to have the magnet not ramp anywhere. (even though ramprate 0 means it might...)
         #     current = settings['setpoint']
         #     ramprate= 0
         servoMode = False
-        logging.debug((settings['start_time'],now))
+        # logging.debug((settings['start_time']-now))
         if servoModeIn and self.stage<3:
             #If we're in servo mode, and the detector isn't really cold yet,
             # sets the ramp rate and set point of current
