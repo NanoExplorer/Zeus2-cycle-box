@@ -52,7 +52,7 @@ class AutoCycler():
         #     current = settings['setpoint']
         #     ramprate= 0
         servoMode = False
-
+        logging.debug((settings['start_time'],now))
         if servoModeIn and self.stage<3:
             #If we're in servo mode, and the detector isn't really cold yet,
             # sets the ramp rate and set point of current
@@ -181,7 +181,7 @@ class HeatSwitch():
             #some threads, so I'm scared to try to integrate it.
             #IN ADDITION I just migrated all this code to python3, and no way am I going
             #to try that with the automatic heatswitch code.
-            self.pobject=subprocess.Popen(['C:\Python27\pythonw.exe','heatswitch_automatic.py',command],
+            self.pobject=subprocess.Popen(['C:\\Users\\mce\\Anaconda3\\envs\\heatswitch\\python','heatswitch_automatic.py',command],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
             return True
