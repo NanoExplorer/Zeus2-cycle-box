@@ -5,6 +5,8 @@ import queue
 from datetime import datetime
 import logging
 import time
+from bson.codec_options import CodecOptions
+
 class SettingsWatcherThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -12,7 +14,8 @@ class SettingsWatcherThread(threading.Thread):
             mstring=mfile.read()
         self.client = MongoClient(mstring)
         self.db=self.client.hk_data
-        self.settingsdb=self.db.settings
+        options=CodecOptions(tz_aware=True)
+        self.settingsdb=self.db.settings.with_options(codec_options=options)
         self.settings = {}
         self.keepGoing=True
         #The keepgoing variables don't have locks. I am not confident that this is a good
@@ -72,7 +75,8 @@ class DatabaseUploaderThread(threading.Thread):
             mstring=mfile.read()
         self.client = MongoClient(mstring)
         self.db=self.client.hk_data
-        self.thermometrydb=self.db.thermometry
+        options=CodecOptions(tz_aware=True)
+        self.thermometrydb=self.db.thermometry.with_options(codec_options=options)
         self.q = queue.Queue()
         #Queues are thread safe. You do not need to use a lock to communicate with a queue.
         self.keepGoing=True
