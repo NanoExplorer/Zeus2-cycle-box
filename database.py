@@ -115,6 +115,7 @@ class ThermometryWatcherThread(threading.Thread):
         self.db=client.hk_data
         self.newdata= queue.Queue()
         self.live_query=live_query
+        options=CodecOptions(tz_aware=True)
         self.thermometrydb=self.db.thermometry.with_options(codec_options=options)
         if num_previous>0:
             c=self.thermometrydb.find(previous_query).sort('timestamp',-1).limit(num_previous)

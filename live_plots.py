@@ -27,8 +27,7 @@ class RollingNumpyArrays():
         self.time=new_timearr
         self.value=new_valuearr
         self.value[0]=add_val
-
-        self.time[0]=matplotlib.dates.date2num(add_time.astimezone(DISPLAY_IN_TZ))
+        self.time[0]=matplotlib.dates.date2num(add_time)
 
 
 
@@ -113,7 +112,7 @@ class animatedplot():
         plt.subplots_adjust(hspace=.1)
         
 
-        xfmt = matplotlib.dates.DateFormatter('%m-%d\n%H:%M:%S')
+        xfmt = matplotlib.dates.DateFormatter('%m-%d\n%H:%M:%S',tz=DISPLAY_IN_TZ)
 
         for ax in self.axes:
             ax.grid()
