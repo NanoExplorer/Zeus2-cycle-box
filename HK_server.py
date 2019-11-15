@@ -10,7 +10,7 @@ from labjack import LabJackController
 from pid import PID 
 from autocycle import AutoCycler
 from interpolators import Interpolators
-
+import read_pressure
 from common import getGRTSuffix, CYCLE_MODE_SAFE_SET_POINT, CYCLE_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT, SERVO_MODE_SAFE_RAMP_RATE
 
 
@@ -55,9 +55,12 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
     pass data to database uploader
     get data from settings downloader
     go from voltage to temperature via interpolated calibration data.
+    Also now it reads the pressure from the pressure sensor.
     """
     def __init__(self,lj):
         #threading.Thread.__init__(self)
+        self.MksComm=None
+        self.pressure_enabled=False
         self.keepGoing = True
         self.lj=lj
         self.sensorsReadingNow = 0 #0th sensor in every list of readout cards
@@ -161,7 +164,8 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
                                     'set_point':self.pid.SetPoint,
                                     'P_term':self.pid.PTerm,
                                     'I_term':self.pid.Ki*self.pid.ITerm,
-                                    'D_term':self.pid.Kd * self.pid.DTerm}})
+                                    'D_term':self.pid.Kd * self.pid.DTerm},
+                                    'PUT_IN_DB':"piddebug"})
         return(self.pid.output,pids['ramp_rate'])
 
 
@@ -181,7 +185,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             self.switch_servo_cycle(servoMode)
             if self.lastAutoCycleStatus != status:
                 self.lastAutoCycleStatus = status
-                self.update_temperatures({'auto_cycle_status':status})
+                self.update_temperatures({'auto_cycle_status':status,"PUT_IN_DB":"supplementary"})
         elif settings["magnet"]["usePID"]:
             inCorrectMode=self.switch_servo_cycle(True)
             assert(temperature is not None)
@@ -210,6 +214,7 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #I guess this is here in case you
         #ever want to do something else with this 
         #data before uploading it...
+        #It also is easier than remembering self.dbuploader.q.put_nowait(blah)
         self.dbuploader.q.put_nowait(tempdict)
 
     def switch_servo_cycle(self,new_mode):
@@ -222,7 +227,8 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         if new_mode != self.lj.servoMode:
             if self.current < 0.08:
                 self.lj.servoMode = new_mode
-                self.update_temperatures({'currently_in_servo': new_mode})
+                self.update_temperatures({'currently_in_servo': new_mode,
+                                          "PUT_IN_DB":"supplementary"})
         return (new_mode == self.lj.servoMode)
 
     def next_sensor(self,settings):
@@ -373,6 +379,34 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             # except Queue.Empty:
             #     pass
             # print("Logic fell behind and skipped {} records. This just means readout will be a bit on the slow side")
+        if "pressure" in settings:
+            self.run_pressure(settings['pressure'])
+
+    def run_pressure(pressure_settings):
+        if (not pressure_settings) and self.read_pressure:
+            self.read_pressure=False
+            self.MksComm.stop()
+        if not pressure_settings["read_pressure_sensor"]:
+            return
+        #After this point, pressure_settings must have "read pressure"==true
+        if not self.read_pressure:
+            self.read_pressure=True
+            self.MksComm = read_pressure.MksPressure()
+        try:
+            data=self.MksComm.data.get_nowait()
+            if data[0]==0:
+                self.update_temperatures({"PUT_IN_DB":"pressure",
+                                         "pressure":float(data[1]),
+                                         "raw_stuff":data})
+            else:
+                self.update_temperatures({"PUT_IN_DB":"pressure",
+                                         "raw_stuff":data})
+            if not self.MksComm.data.empty():
+                logging.warning(f"pressure data behind by {self.mksComm.data.qsize()} records")
+        except queue.Empty:
+            logging.debug("No pressure data :(")
+
+
     def process(self,voltage, card, sensornum):
         #read in files corresponding to sensornum and card
         #make numpy interpolator

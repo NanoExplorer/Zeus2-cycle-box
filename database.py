@@ -77,7 +77,10 @@ class DatabaseUploaderThread(threading.Thread):
         self.db=self.client.hk_data
         options=CodecOptions(tz_aware=True)
         self.thermometrydb=self.db.thermometry.with_options(codec_options=options)
-        self.q = queue.Queue()
+        self.suppdb=self.db.supplementary.with_options(codec_options=options)
+        self.pressuredb=self.db.pressure.with_options(codec_options=options)
+        self.piddb=self.db.piddebug.with_options(codec_options=options)
+        self.q = queue.Queue() 
         #Queues are thread safe. You do not need to use a lock to communicate with a queue.
         self.keepGoing=True
 
@@ -94,7 +97,19 @@ class DatabaseUploaderThread(threading.Thread):
         try:
             data = self.q.get(True,None)
             data.update({'timestamp':datetime.now()})
-            self.thermometrydb.insert_one(data)
+            if 'PUT_IN_DB' in data:
+                useDB=data['PUT_IN_DB']
+                del data['PUT_IN_DB']
+                if useDB=="thermometry":
+                    self.thermometrydb.insert_one(data)
+                elif useDB=="pressure":
+                    self.pressuredb.insert_one(data)
+                elif useDB=="supplementary":
+                    self.suppdb.insert_one(data)
+                elif useDB=="piddebug":
+                    self.piddb.insert_one(data)
+            else:
+                self.thermometrydb.insert_one(data)
         except queue.Empty:
             logging.exception("Upload queue is empty?")
 
