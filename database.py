@@ -2,7 +2,7 @@ from pymongo import MongoClient
 import pymongo
 import threading
 import queue
-from datetime import datetime
+from datetime import datetime,timezone
 import logging
 import time
 from bson.codec_options import CodecOptions
@@ -93,7 +93,7 @@ class DatabaseUploaderThread(threading.Thread):
     def upload(self):
         try:
             data = self.q.get(True,None)
-            data.update({'timestamp':datetime.now()})
+            data.update({'timestamp':datetime.now(timezone.utc)})
             self.thermometrydb.insert_one(data)
         except queue.Empty:
             logging.exception("Upload queue is empty?")
@@ -115,8 +115,9 @@ class ThermometryWatcherThread(threading.Thread):
         self.db=client.hk_data
         self.newdata= queue.Queue()
         self.live_query=live_query
+        self.thermometrydb=self.db.thermometry.with_options(codec_options=options)
         if num_previous>0:
-            c=self.db.thermometry.find(previous_query).sort('timestamp',-1).limit(num_previous)
+            c=self.thermometrydb.find(previous_query).sort('timestamp',-1).limit(num_previous)
             docs =[]
             for doc in c:
                 docs.append(doc)
@@ -127,7 +128,7 @@ class ThermometryWatcherThread(threading.Thread):
 
 
     def run(self): #[{"$match":self.live_query}
-        cursor=self.db.thermometry.watch([{"$match":self.live_query}],max_await_time_ms=10000)
+        cursor=self.thermometrydb.watch([{"$match":self.live_query}],max_await_time_ms=10000)
         for change in cursor:
                 #print("Got an update")
                 self.newdata.put_nowait(change['fullDocument'])
@@ -139,7 +140,7 @@ class EasyThermometry():
                  end_date=None,
                  want_sensors='all'):
         """Warning:
-        start_date, end_date, and want_sensors are nyi.
+        start_date, end_date, and want_sensors are works in progress.
         """
         self.sensors = {"2WIRE":[[] for i in range(8)],
                         "4WIRE":[[] for i in range(4)],

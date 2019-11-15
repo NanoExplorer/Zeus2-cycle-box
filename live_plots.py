@@ -2,10 +2,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
+from datetime import timezone, timedelta
 from matplotlib.animation import FuncAnimation#, writers
 from database import ThermometryWatcherThread
 import queue
 import argparse
+DISPLAY_IN_TZ=timezone(timedelta(hours=-3))
 class RollingNumpyArrays():
     def __init__(self,size):
         #self.value is nan before the array has been fully filled
@@ -25,7 +27,8 @@ class RollingNumpyArrays():
         self.time=new_timearr
         self.value=new_valuearr
         self.value[0]=add_val
-        self.time[0]=matplotlib.dates.date2num(add_time)
+
+        self.time[0]=matplotlib.dates.date2num(add_time.astimezone(DISPLAY_IN_TZ))
 
 
 

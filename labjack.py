@@ -57,7 +57,7 @@ class LabJackController(threading.Thread):
         with self.sensorsLock:
             self.diosIn[14]= 1 if self.servoMode else 0 #convert boolean to number...
 
-            #I'm using __future__ division so I need to do // to have integer division.
+            #This is python 3 so I need to do // to have integer division.
             if self.read0to3 is not None:
                 self.diosIn[0]=self.read0to3%2 #lsb of sensor address
                 self.diosIn[1]=self.read0to3//2 #msb of sensor address
