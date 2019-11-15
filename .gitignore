@@ -120,3 +120,4 @@ prank.py
 settings_mongodb_sample.json
 mongostring
 mongo/cluster users
+debug.txt
