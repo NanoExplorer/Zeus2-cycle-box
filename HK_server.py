@@ -387,9 +387,9 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         if card =='Voltage': 
             return v
         elif card=='Current':
-            if v*20 > 3.9:
-                with open("debug.txt",'w') as f:
-                    f.write(str(voltage))
+            # if v*20 > 3.9:
+            #     with open("debug.txt",'w') as f:
+            #         f.write(str(voltage))
             return v*20
         else:
             return self.interp.go(v,card,sensornum)
