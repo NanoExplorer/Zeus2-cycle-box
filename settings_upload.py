@@ -24,7 +24,11 @@ def get_cmdline_args():
     parser.add_argument('-S', '--set-point', type=float,help="Magnet set point for cycle")
 
     args=parser.parse_args()
+    if args.cycle_duration or args.ramp_down or args.ramp_up or args.heatswitch_delay or args.set_point:
+        args.update_same_cycle=True
+
     return args
+
 
 
 
