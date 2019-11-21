@@ -1,3 +1,4 @@
+from datetime import timezone, timedelta
 def getGRTSuffix(n):
     if n<4:
         return '0-3'
@@ -11,3 +12,4 @@ CYCLE_MODE_SAFE_RAMP_RATE=0
 CYCLE_MODE_SAFE_SET_POINT=0
 SERVO_MODE_SAFE_RAMP_RATE=5
 SERVO_MODE_SAFE_SET_POINT=0
+DISPLAY_IN_TZ=timezone(timedelta(hours=-3))

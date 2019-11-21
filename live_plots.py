@@ -7,7 +7,8 @@ from matplotlib.animation import FuncAnimation#, writers
 from database import ThermometryWatcherThread
 import queue
 import argparse
-DISPLAY_IN_TZ=timezone(timedelta(hours=-3))
+from common import DISPLAY_IN_TZ
+
 class RollingNumpyArrays():
     def __init__(self,size):
         #self.value is nan before the array has been fully filled

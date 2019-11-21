@@ -6,7 +6,7 @@ import argparse
 import copy
 import database
 import sys
-
+from common import DISPLAY_IN_TZ
 def get_cmdline_args():
     parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
     parser.add_argument('settingsfile', type=str, nargs='?', help="the file to read settings from")
@@ -24,9 +24,11 @@ def get_cmdline_args():
     parser.add_argument('-S', '--set-point', type=float,help="Magnet set point for cycle")
 
     args=parser.parse_args()
-    if args.cycle_duration or args.ramp_down or args.ramp_up or args.heatswitch_delay or args.set_point:
+    
+    hsw_vars=[args.cycle_duration, args.ramp_down, args.ramp_up, args.heatswitch_delay, args.set_point]
+    if any(v is not None for v in hsw_vars):
         args.update_same_cycle=True
-
+        #print("defaulting to update same cycle")
     return args
 
 
@@ -40,7 +42,7 @@ def go():
             settings=json.load(jsonfile)
         onlinesettings=None
 
-    if args.settingsfile is None or len(settings)<5:
+    if args.settingsfile is None or len(settings)<5 or args.update_same_cycle:
         s=database.SettingsWatcherThread()
         del s.settings['_id']
         onlinesettings = copy.deepcopy(s.settings)
@@ -48,8 +50,15 @@ def go():
         if 'cycle' not in settings and not args.update_same_cycle:
             #If the cycle settings aren't present, disarm the cycle.
             s.settings['cycle']['armed']=False
+        if args.update_same_cycle:
+            #If it's the same cycle, we can't allow changing the cycle id
+            # or the start time.
+            settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
+            settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
         s.settings.update(settings)
+        #NOTE: this is NOT a recursive update. just in case you thought it was (I did)
         settings=s.settings
+
 
     
     #Modify the settings dictionary 
@@ -85,10 +94,11 @@ def go():
     if len(sys.argv) > 1:
         write_settings(settings,onlinesettings)
     
-    writeout['cycle']['start_time']=writeout['cycle']['start_time'].isoformat()
-    writeout['timestamp']=writeout['timestamp'].isoformat()
+    writeout['cycle']['start_time']=writeout['cycle']['start_time'].astimezone(DISPLAY_IN_TZ).isoformat()
+    writeout['timestamp']=writeout['timestamp'].astimezone(DISPLAY_IN_TZ).isoformat()
     #print(writeout)
     jstr=json.dumps(writeout, indent=4, sort_keys=True)
+
     print(jstr)
     with open('presets/lastsettings.json','w') as outfile:
         outfile.write(jstr)
