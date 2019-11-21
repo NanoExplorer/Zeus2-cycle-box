@@ -50,7 +50,9 @@ class LabJackController(threading.Thread):
         self.diosIn[3]=0 #As far as I've seen, the GRT0-3 card has always been in cold mode
         #print("have not determined what the two leds hanging out of the 4wire box should be")
         self.diosIn[15]=1#??? check to see what mode this is usually in.
-        self.update_dios()
+        #self.update_dios()
+        #That was a bad idea. It means that we always start in servo mode
+        #even if we don't want to.
 
 
     def update_dios(self):

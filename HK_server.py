@@ -127,6 +127,9 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
             self.pid.SetPoint = pids['temp_set_point']
 
         self.lj.servoMode=servoMode #atomic operation doesn't need lock
+        #Now that we've set up labjack sufficiently, we need it to update dios
+        self.lj.update_dios()
+        #previously this was done in the labjack init method, which was a bad idea.
 
     def run(self):
         with self.settings.settingsLock:

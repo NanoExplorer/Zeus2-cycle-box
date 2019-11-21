@@ -133,13 +133,45 @@ class ThermometryWatcherThread(threading.Thread):
         for change in cursor:
                 #print("Got an update")
                 self.newdata.put_nowait(change['fullDocument'])
+class SettingsHistory():
+    def __init__(self,
+                 mongostring="mongostring",
+                 start_date=None,
+                 end_date=None,
+                 query=None):
+        print("WORK IN PROGRESS")
+        with open(mongostring,'r') as mfile:
+            mstring=mfile.read()
+        self.client = MongoClient(mstring)
+        self.db=self.client.hk_data
+        options=CodecOptions(tz_aware=True)
+        self.settingsdb=self.db.settings.with_options(codec_options=options)
+
+        q = make_mongo_query(start_date=start_date,
+                             end_date=end_date,
+                             custom_query=query)
+        self.settings=self.settingsdb.find(q).sort("timestamp",pymongo.ASCENDING)
+
+def make_mongo_query(start_date=None,
+                     end_date=None,
+                     custom_query=None):
+    a = []
+    q = {'$and':a}
+    if start_date is not None:
+        a.append({"timestamp":{"$gt":start_date}})
+    if end_date is not None:
+        a.append({"timestamp":{"$lt":end_date}})
+    if custom_query is not None:
+        a.append(custom_query)
+    return q
 
 class EasyThermometry():
     def __init__(self,
                  npts,
                  start_date=None,
                  end_date=None,
-                 want_sensors='all'):
+                 want_sensors='all',
+                 mongostring="mongostring"):
         """Warning:
         start_date, end_date, and want_sensors are works in progress.
         """
@@ -161,13 +193,10 @@ class EasyThermometry():
         else:
             print('nyi')
             raise RuntimeError('notyetimplemented')
-        if start_date is not None or end_date is not None:
-            q={'$and':[q]}
-        if start_date is not None:
-            q['$and'].append({"timestamp":{"$gt":start_date}})
-        if end_date is not None:
-            q['$and'].append({'timestamp':{"$lt":end_date}})
-        with open("mongostring",'r') as mfile:
+        q = make_mongo_query(start_date=start_date,
+                             end_date=end_date,
+                             custom_query=q)
+        with open(mongostring,'r') as mfile:
             mstring=mfile.read()
         client = MongoClient(mstring)
         self.db=client.hk_data
