@@ -37,15 +37,23 @@ def get_cmdline_args():
 def go():
     args=get_cmdline_args()
     settings={}
+
+    s=database.SettingsWatcherThread()
+    del s.settings['_id']
+    onlinesettings = copy.deepcopy(s.settings)
+
     if args.settingsfile is not None:
         with open(args.settingsfile,'r') as jsonfile:
             settings=json.load(jsonfile)
-        onlinesettings=None
+
+    #If there were no args, there can't be any changes to the settings, so just
+    # print and exit.
+    if len(sys.argv) == 1:
+        print_settings(onlinesettings)
+        exit()
+
 
     if args.settingsfile is None or len(settings)<5 or args.update_same_cycle:
-        s=database.SettingsWatcherThread()
-        del s.settings['_id']
-        onlinesettings = copy.deepcopy(s.settings)
         #if anything is present in the file, use it to override what's in the database
         if 'cycle' not in settings and not args.update_same_cycle:
             #If the cycle settings aren't present, disarm the cycle.
@@ -55,8 +63,12 @@ def go():
             # or the start time.
             settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
             settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
+        #merge user-supplied settings file (if any)
+        #and cycle-preservation into online settings
         s.settings.update(settings)
         #NOTE: this is NOT a recursive update. just in case you thought it was (I did)
+        #I think what that means is that you can't omit certain 
+        #parameters from a section---it's all or nothing.
         settings=s.settings
 
 
@@ -89,19 +101,23 @@ def go():
     sort_out_timestamps(settings)
 
     onlinesettings=start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
-    writeout = copy.deepcopy(settings)
-    #If there were no args, there can't be any changes to the settings, so don't write anything
-    if len(sys.argv) > 1:
-        write_settings(settings,onlinesettings)
-    
-    writeout['cycle']['start_time']=writeout['cycle']['start_time'].astimezone(DISPLAY_IN_TZ).isoformat()
-    writeout['timestamp']=writeout['timestamp'].astimezone(DISPLAY_IN_TZ).isoformat()
-    #print(writeout)
-    jstr=json.dumps(writeout, indent=4, sort_keys=True)
 
-    print(jstr)
+
+    write_settings(settings,onlinesettings)
+    
+    jstr=print_settings(settings)
+
     with open('presets/lastsettings.json','w') as outfile:
         outfile.write(jstr)
+
+def print_settings(settings):
+    settings['cycle']['start_time']=settings['cycle']['start_time'].astimezone(DISPLAY_IN_TZ).isoformat()
+    settings['timestamp']=settings['timestamp'].astimezone(DISPLAY_IN_TZ).isoformat()
+
+    jstr=json.dumps(settings, indent=4, sort_keys=True)
+
+    print(jstr)
+    return jstr
 
 def sort_out_timestamps(settings):
     """Modifies the settings argument"""
@@ -168,10 +184,6 @@ def start_new_cycle(settings,onlinesettings,args):
         if c!='y':
             print('exiting...')
             exit()
-        if onlinesettings is None:
-            s=database.SettingsWatcherThread()
-            onlinesettings = s.settings
-            del onlinesettings['_id']
         cycle['cycle_ID']=onlinesettings['cycle']['cycle_ID']+1
         # with open(args.settingsfile,'w') as autocyclesettingsfile:
         #     writeout = copy.deepcopy(settings)
@@ -179,12 +191,15 @@ def start_new_cycle(settings,onlinesettings,args):
         #     writeout['timestamp']=writeout['timestamp'].isoformat()
         #     autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
     return onlinesettings
+
 # from https://stackoverflow.com/questions/27265939/comparing-python-dictionaries-and-nested-dictionaries#27266178
 def findDiff(d1, d2, path=""):
     for k in d1.keys():
         if not k in d2:
             print (path, ":")
-            print (k + " as key not in d2", "\n")
+            print (k + " as key not in d2!")
+            print (f"setting to {d1[k]}")
+            d2[k] = d1[k]
         else:
             if type(d1[k]) is dict:
                 if path == "":
@@ -212,7 +227,8 @@ def write_settings(settings,onlinesettings):
     collection=db.settings
 
     collection.insert_one(settings)
-    #print("WARNING: in testing mode. Nothing modified.")
+    # print("WARNING: in testing mode. Nothing modified.")
     #exit()
+    
 if __name__=="__main__":
     go()
