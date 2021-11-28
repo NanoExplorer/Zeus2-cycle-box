@@ -58,9 +58,10 @@ def go():
         if 'cycle' not in settings and not args.update_same_cycle:
             #If the cycle settings aren't present, disarm the cycle.
             s.settings['cycle']['armed']=False
-        if args.update_same_cycle:
+        if args.update_same_cycle and 'cycle' in settings:
             #If it's the same cycle, we can't allow changing the cycle id
-            # or the start time.
+            # or the start time. If there are no cycle settings yet
+            # it doesn't matter.
             settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
             settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
         #merge user-supplied settings file (if any)
@@ -111,6 +112,10 @@ def go():
         outfile.write(jstr)
 
 def print_settings(settings):
+    try:
+        del settings['_id']
+    except KeyError:
+        pass
     settings['cycle']['start_time']=settings['cycle']['start_time'].astimezone(DISPLAY_IN_TZ).isoformat()
     settings['timestamp']=settings['timestamp'].astimezone(DISPLAY_IN_TZ).isoformat()
 
@@ -229,6 +234,6 @@ def write_settings(settings,onlinesettings):
     collection.insert_one(settings)
     # print("WARNING: in testing mode. Nothing modified.")
     #exit()
-    
+
 if __name__=="__main__":
     go()
