@@ -119,17 +119,25 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         #TODO: UNLESS WE WERE IN AUTO CYCLE. POSSIBLE FIX: push servo/cycle info to thermometry and read it here
         #I wonder if you can read from write-only pins on the labjack. That means we could get our info
         #Straight from the horse's mouth...
+        
+        #Workaround: If this program crashes during an auto cycle, you will have to upload a new document to the settings
+        # that contains manual magnet current and ramprate info, then finish the demag manually.
         with self.settings.settingsLock:
             servoMode=self.settings.settings["magnet"]["servo_mode"]
+            current = settings["magnet"]["setpoint"]
+            ramprate = settings["magnet"]["ramprate"]
             pids=self.settings.settings["pid"]
             self.pid = PID(P=pids['p'],I=pids['i'],D=pids['d'],cap=pids['max_current'])
             self.pid.setWindup(pids['max_current'])
             self.pid.SetPoint = pids['temp_set_point']
 
         self.lj.servoMode=servoMode #atomic operation doesn't need lock
+        self.lj.currentSetpoint = current
+        self.lj.currentRamprate = ramprate
         #Now that we've set up labjack sufficiently, we need it to update dios
         self.lj.update_dios()
         #previously this was done in the labjack init method, which was a bad idea.
+        #Right after this is done, main() calls labjack.run, and labjack starts writing magnet currents/ramprates immediately.
 
     def run(self):
         with self.settings.settingsLock:
