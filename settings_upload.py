@@ -53,8 +53,9 @@ def go():
         if args.update_same_cycle:
             #If it's the same cycle, we can't allow changing the cycle id
             # or the start time.
-            settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
-            settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
+            if "cycle" in settings:
+                settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
+                settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
         s.settings.update(settings)
         #NOTE: this is NOT a recursive update. just in case you thought it was (I did)
         settings=s.settings

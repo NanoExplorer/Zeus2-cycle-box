@@ -15,6 +15,7 @@ class AutoCycler():
         self.heatSwitch = HeatSwitch() 
         self.cycleID=-1
         self.done=False
+        self.shouldBeRunning=False
 
     def update(self,settings,servoModeIn):
         """
@@ -44,6 +45,7 @@ class AutoCycler():
         current=settings['setpoint']
         ramprate=0
         now = datetime.now(tz=timezone.utc)
+        self.shouldBeRunning=now > settings['start_time']
         # if self.heatSwitch.hswError is not None:
         #     #If the heat switch had an error, best to have the magnet not ramp anywhere. (even though ramprate 0 means it might...)
         #     current = settings['setpoint']

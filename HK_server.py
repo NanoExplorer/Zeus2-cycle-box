@@ -168,25 +168,35 @@ class LogicClass():#threading.Thread): Logic Thread is now going to run in the m
         return(self.pid.output,pids['ramp_rate'])
 
 
-    def update_magnet(self,settings,temperature=None):
+    def update_magnet(self, settings, temperature=None):
         """This communicates the magnet set point and ramprate to the lj controls."""
 
-        
-        #The autocycler only gets updated when it's running, so we have to detect the start of a new cycle here.
-        #I.E. cycle finishes, user requests new cycle, 
-        onSameCycle=self.autoCycler.cycleID==settings['cycle']['cycle_ID']
+        # The autocycler only gets updated when it's running, so we have to detect the start of a new cycle here.
+        # I.E. cycle finishes, user requests new cycle, 
+        onSameCycle = self.autoCycler.cycleID == settings['cycle']['cycle_ID']
 
-        #If cycle is not armed, we must not follow this conditional branch.
-        #If cycle is finished, we must not follow this branch unless a new cycle has been started. I.E. when finished is true but onsamecycle is not, the second 
-        #part of this conditional is true.
+        # If cycle is not armed, we must not follow this conditional branch.
+        # If cycle is finished, we must not follow this branch unless a new cycle has been started. I.E. when finished is true but onsamecycle is not, the second 
+        # part of this conditional is true.
         if settings["cycle"]["armed"] and not (self.autoCycler.done and onSameCycle):
-            current,ramprate,servoMode,status = self.autoCycler.update(settings["cycle"],self.lj.servoMode)
-            self.switch_servo_cycle(servoMode)
-            if self.lastAutoCycleStatus != status:
-                self.lastAutoCycleStatus = status
-                self.update_temperatures({'auto_cycle_status':status})
+            current, ramprate, servoMode, status = self.autoCycler.update(settings["cycle"], self.lj.servoMode)
+            # Allow PID to continue running until the moment the auto cycle needs to begin.
+            if settings["magnet"]["usePID"] and not self.autoCycler.shouldBeRunning:
+                inCorrectMode = self.switch_servo_cycle(True)
+                # Make sure we're in servo mode before committing PID step
+                assert(temperature is not None)
+                if inCorrectMode:
+                    current, ramprate = self.do_pid_step(settings['pid'], temperature)
+                else:
+                    # we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
+                    current = CYCLE_MODE_SAFE_SET_POINT     
+            else:
+                self.switch_servo_cycle(servoMode)
+                if self.lastAutoCycleStatus != status:
+                    self.lastAutoCycleStatus = status
+                    self.update_temperatures({'auto_cycle_status':status})
         elif settings["magnet"]["usePID"]:
-            inCorrectMode=self.switch_servo_cycle(True)
+            inCorrectMode = self.switch_servo_cycle(True)
             assert(temperature is not None)
             if inCorrectMode:
                 current,ramprate = self.do_pid_step(settings['pid'],temperature)
