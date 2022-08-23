@@ -60,12 +60,10 @@ def go():
             s.settings['cycle']['armed']=False
         if args.update_same_cycle and 'cycle' in settings:
             #If it's the same cycle, we can't allow changing the cycle id
-            # or the start time. If there are no cycle settings yet
-            # it doesn't matter.
-            settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
-            settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
-        #merge user-supplied settings file (if any)
-        #and cycle-preservation into online settings
+            # or the start time.
+            if "cycle" in settings:
+                settings["cycle"]["start_time"] = onlinesettings["cycle"]["start_time"]
+                settings["cycle"]["cycle_ID"] = onlinesettings["cycle"]["cycle_ID"]
         s.settings.update(settings)
         #NOTE: this is NOT a recursive update. just in case you thought it was (I did)
         #I think what that means is that you can't omit certain 
