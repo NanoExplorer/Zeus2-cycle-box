@@ -9,3 +9,113 @@ replSet = rs0
 2. you only need to do this once: open a mongo shell with `mongo` and run
 rs.initiate()
 3. NEVER RUN MONGOD AS ROOT. Everything will break and you'll have to do `sudo chown -R mongodb /var/lib/mongodb/*` to fix it.
+4: Before exposing mongo to the internet make sure to enforce authentication.
+
+Adding members to the replica set allows you to create a continuous backup of the database. I don't remember how to do that unfortunately...
+Right now the cluster is configured to run on localhost addresses. If one cluster member is localhost, all others have to be as well. Use SSH tunneling to accomplish this? Or change to IP addresses and VPNs? SSH is easier...
+ 1. edit mongod.cfg on member machine. This will be in program files\mongodb\server\4.2\bin on windows and /etc/mongodb.conf on linux. 
+    Make it contain the following: a port like 46134 that is different from other machines
+    bindip: 127.0.0.1,0.0.0.0 lets it communicate with other cluster members, and also clients like settings uploaders on the wider lan
+    security authorization enabled
+    keyFile: path to keyfile copied from a different member server
+    replication: 
+       replSetName: rs0
+2.  start mongod
+3.  on the primary use rs.add( { host: "hostname:port"} )
+
+Now that I know how to only forward certain traffic to a wireguard VPN, (i.e., set the client's AllowedIPs to only the local subnets, in this case 10.42. dang it this still doesn't work because each server can only have 1 ip address, and it will be the 10.42.97 one so all traffic will have to bounce off the server)
+
+Our "Cluster" is configured in such a way that the server on the HKPC is always the primary. So, voting is disabled, and other members are given priority 0, since their only purpose is to copy the data. Though, theoretically, it might be easier to just give the hkpc database a high priority. In fact, it looks like that's best practice. To do that, you'll need commands like 
+
+cfg = rs.conf();
+cfg.members[1].votes=1
+cfg.members[1].priority=2 #high numbers are more likely to be primaries
+rs.reconfig(cfg)
+
+If the primary is down, you can force the reconfig by using 
+rs.reconfig(cfg,{force:true,})
+
+but any writes on the primary that didn't make it to the secondaries will be deleted.
+details: if you go with the option that the HKPC is the only voting member (ie all other machines have priority 0 votes 0) then the hkpc will always be the primary, and other members will be secondaries whenever HKPC is down. The advantage to this is the HKPC is always the authority on the data and the other members are backups. Disadvantage is you can't even write to the AUTH database when HKPC is down, to add more members for example. 
+If you go to the other option, you have to have 3 members. Otherwise, when the HKPC is down, the cluster will not function because it won't be able to reach a majority in the voting. Or you can have 2 members and an arbiter, which is basically just a beacon that votes for the highest priority member it can see. It wouldn't have a copy of the data on it.
+
+
+
+To view the size of the mongo database, use hk_data then run db.stats(). I think storageSize is the number you're looking for, and it seems to be about 100 MB per observing run.
+
+
+This is my backup configuration
+
+{
+        "_id" : "rs0",
+        "version" : 106530,
+        "protocolVersion" : NumberLong(1),
+        "writeConcernMajorityJournalDefault" : true,
+        "members" : [
+                {
+                        "_id" : 0,
+                        "host" : "127.0.0.1:46132",
+                        "arbiterOnly" : false,
+                        "buildIndexes" : true,
+                        "hidden" : false,
+                        "priority" : 1,
+                        "tags" : {
+
+                        },
+                        "slaveDelay" : NumberLong(0),
+                        "votes" : 1
+                },
+                {
+                        "_id" : 1,
+                        "host" : "127.0.0.1:46133",
+                        "arbiterOnly" : false,
+                        "buildIndexes" : true,
+                        "hidden" : false,
+                        "priority" : 2,
+                        "tags" : {
+
+                        },
+                        "slaveDelay" : NumberLong(0),
+                        "votes" : 1
+                }
+        ],
+        "settings" : {
+                "chainingAllowed" : true,
+                "heartbeatIntervalMillis" : 2000,
+                "heartbeatTimeoutSecs" : 10,
+                "electionTimeoutMillis" : 10000,
+                "catchUpTimeoutMillis" : -1,
+                "catchUpTakeoverDelayMillis" : 30000,
+                "getLastErrorModes" : {
+
+                },
+                "getLastErrorDefaults" : {
+                        "w" : 1,
+                        "wtimeout" : 0
+                },
+                "replicaSetId" : ObjectId("5d9ec34109a6fb14b3ab6bd8")
+        }
+}
+
+
+
+
+Mongo is really anal about hostnames. Hopefully it's configured in a good way now, but if everything blows up in your face you may have to use the following:
+
+edit mongod.cfg to comment out things about authentication and replica sets, change ip to 127.0.0.1
+
+PS C:\Program Files\MongoDB\Server\4.2\bin> .\mongod.exe --remove
+PS C:\Program Files\MongoDB\Server\4.2\bin> .\mongod.exe -f "C:\Program Files\MongoDB\Server\4.2\bin\mongod.cfg" --install
+PS C:\Program Files\MongoDB\Server\4.2\bin> net start mongodb
+PS C:\Program Files\MongoDB\Server\4.2\bin> .\mongo.exe --port 46132
+
+
+use local
+db.system.replset.remove({})
+
+then edit mongod.cfg to change ip address to nominal and turn on aut and rs
+run 4 ps commands
+
+use admin
+db.auth("username","password")
+rs.initiate()
