@@ -123,3 +123,4 @@ mongo/cluster users
 debug.txt
 junk/*
 presets/*
+keyfile_mongo
