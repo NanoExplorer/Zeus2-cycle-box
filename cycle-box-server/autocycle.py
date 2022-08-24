@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta,timezone
 import subprocess
-from common import SERVO_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT
+from zhklib.common import SERVO_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT
 import logging
 
 class AutoCycler():

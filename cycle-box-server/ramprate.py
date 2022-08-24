@@ -1,4 +1,5 @@
 import time
+
 class MagnetRamp():
     def __init__(self):
         self.lastTime = time.time() #time at which magnet was last updated

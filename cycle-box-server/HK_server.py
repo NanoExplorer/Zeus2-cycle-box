@@ -5,13 +5,13 @@ import copy
 import sys
 import signal
 import logging
-from database import SettingsWatcherThread, DatabaseUploaderThread
+from zhklib.database import SettingsWatcherThread, DatabaseUploaderThread
 from labjack import LabJackController
 from pid import PID 
 from autocycle import AutoCycler
 from interpolators import Interpolators
 
-from common import getGRTSuffix, CYCLE_MODE_SAFE_SET_POINT, CYCLE_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT, SERVO_MODE_SAFE_RAMP_RATE
+from zhklib.common import getGRTSuffix, CYCLE_MODE_SAFE_SET_POINT, CYCLE_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT, SERVO_MODE_SAFE_RAMP_RATE
 
 
 
