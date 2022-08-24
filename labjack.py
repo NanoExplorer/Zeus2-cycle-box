@@ -125,8 +125,6 @@ class LabJackController(threading.Thread):
                 if returnDict['missed']>0:
                     logging.debug(f"Missed {returnDict['missed']}")
                 #write the voltages to control magnet current and ramp rate
-                #I'm using __future__ division, so I don't have to worry about floating point
-                #issues when dividing:
                 self.device.writeRegister(5002,self.currentSetpoint/20) #dac1
                 self.device.writeRegister(5000,self.currentRamprate/2) #dac0
                 
