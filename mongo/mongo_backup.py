@@ -18,6 +18,6 @@ for e,i in enumerate(j):
 	if e%100000==0:
 		print(f'have backed up {e} records')
 print("writing json")
-with open('thermometry.json','w') as f:
+with open('thermometry_apex2019.json','w') as f:
 	f.write(json.dumps(a))
 #__main__:1: DeprecationWarning: remove is deprecated. Use delete_one or delete_many instead.
