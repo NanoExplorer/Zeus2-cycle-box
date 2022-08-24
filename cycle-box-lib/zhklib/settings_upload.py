@@ -1,12 +1,14 @@
 #This script prints the sample settings json file and uploads a sample database entry 
-from pymongo import MongoClient, InsertOne
+from pymongo import MongoClient  # , InsertOne
 from datetime import datetime, timezone, timedelta
 import json
 import argparse
 import copy
-import database
+from zhklib import database
 import sys
-from common import DISPLAY_IN_TZ
+from zhklib.common import DISPLAY_IN_TZ
+
+
 def get_cmdline_args():
     parser = argparse.ArgumentParser(description="change zeus2 cycle box settings")
     parser.add_argument('settingsfile', type=str, nargs='?', help="the file to read settings from")
@@ -16,29 +18,27 @@ def get_cmdline_args():
     parser.add_argument('-t', '--set-temp', type=float, help="override the set temp for the pid loop")
     parser.add_argument('-c', '--current', type=float, help="override the magnet current")
     parser.add_argument('-r', '--ramprate', type=float, help='override the magnet current ramp rate')
-    parser.add_argument('--update-same-cycle',action='store_true')
-    parser.add_argument('-D', '--cycle-duration', type=float,help="Number of hours between start of ramp up to start of ramp down")
-    parser.add_argument('-R', '--ramp-down', type=float,help="Cycle ramp rate down")
-    parser.add_argument('-U', '--ramp-up', type=float,help="Cycle ramp rate up")
-    parser.add_argument('-H', '--heatswitch-delay', type=float,help="Number of hours between start of ramp up to heatswitch toggle")
-    parser.add_argument('-S', '--set-point', type=float,help="Magnet set point for cycle")
+    parser.add_argument('--update-same-cycle', action='store_true')
+    parser.add_argument('-D', '--cycle-duration', type=float, help="Number of hours between start of ramp up to start of ramp down")
+    parser.add_argument('-R', '--ramp-down', type=float, help="Cycle ramp rate down")
+    parser.add_argument('-U', '--ramp-up', type=float, help="Cycle ramp rate up")
+    parser.add_argument('-H', '--heatswitch-delay', type=float, help="Number of hours between start of ramp up to heatswitch toggle")
+    parser.add_argument('-S', '--set-point', type=float, help="Magnet set point for cycle")
 
-    args=parser.parse_args()
+    args = parser.parse_args()
     
-    hsw_vars=[args.cycle_duration, args.ramp_down, args.ramp_up, args.heatswitch_delay, args.set_point]
+    hsw_vars = [args.cycle_duration, args.ramp_down, args.ramp_up, args.heatswitch_delay, args.set_point]
     if any(v is not None for v in hsw_vars):
         args.update_same_cycle=True
-        #print("defaulting to update same cycle")
+        # print("defaulting to update same cycle")
     return args
 
 
-
-
 def go():
-    args=get_cmdline_args()
-    settings={}
+    args = get_cmdline_args()
+    settings = {}
 
-    s=database.SettingsWatcherThread()
+    s = database.SettingsWatcherThread()
     del s.settings['_id']
     onlinesettings = copy.deepcopy(s.settings)
 
@@ -51,7 +51,6 @@ def go():
     if len(sys.argv) == 1:
         print_settings(onlinesettings)
         exit()
-
 
     if args.settingsfile is None or len(settings)<5 or args.update_same_cycle:
         #if anything is present in the file, use it to override what's in the database
@@ -69,8 +68,6 @@ def go():
         #I think what that means is that you can't omit certain 
         #parameters from a section---it's all or nothing.
         settings=s.settings
-
-
     
     #Modify the settings dictionary 
     #based on overrides given by user
@@ -101,13 +98,13 @@ def go():
 
     onlinesettings=start_new_cycle(settings,onlinesettings,args) # This decides whether a new cycle is being started
 
-
     write_settings(settings,onlinesettings)
     
     jstr=print_settings(settings)
 
     with open('presets/lastsettings.json','w') as outfile:
         outfile.write(jstr)
+
 
 def print_settings(settings):
     try:
@@ -122,6 +119,7 @@ def print_settings(settings):
     print(jstr)
     return jstr
 
+
 def sort_out_timestamps(settings):
     """Modifies the settings argument"""
     #we ignore the value of timestame set in the json file
@@ -130,17 +128,18 @@ def sort_out_timestamps(settings):
     time=cycle['start_time']    
     settings['timestamp'] =now
 
-
     if type(cycle['start_time']) is str:
         cycle['start_time']=datetime.fromisoformat(time)
     if cycle['heatswitch_delay'] >= cycle['duration']:
         print("Heatswitch delay must be less than duration. ")
         exit()
 
+
 def print_cyclestart(time,now,hrsfromnow):
     print(f"current time: {now}")
     print(f"cycle start:  {time}")
     print(f"Cycle would start {hrsfromnow:.1f} hours from now")
+
 
 def handle_future(time,now,mode="set_today"):
     hrsfromnow = (time-now).total_seconds()/3600
@@ -195,13 +194,14 @@ def start_new_cycle(settings,onlinesettings,args):
         #     autocyclesettingsfile.write(json.dumps(writeout, indent=4, sort_keys=True))
     return onlinesettings
 
+
 # from https://stackoverflow.com/questions/27265939/comparing-python-dictionaries-and-nested-dictionaries#27266178
 def findDiff(d1, d2, path=""):
     for k in d1.keys():
-        if not k in d2:
-            print (path, ":")
-            print (k + " as key not in d2!")
-            print (f"setting to {d1[k]}")
+        if k not in d2:
+            print(path, ":")
+            print(k + " as key not in d2!")
+            print(f"setting to {d1[k]}")
             d2[k] = d1[k]
         else:
             if type(d1[k]) is dict:
@@ -216,22 +216,24 @@ def findDiff(d1, d2, path=""):
                         print(f"{path}: {k} changed from {d1[k]} to {d2[k]}")
                     else:
                         print(f"{k} changed from {d1[k]} to {d2[k]}")
-def write_settings(settings,onlinesettings):
 
-    findDiff(onlinesettings,settings)
-    x=input("Accept these changes? [y/n]")
-    if x!= 'y':
+
+def write_settings(settings, onlinesettings):
+
+    findDiff(onlinesettings, settings)
+    x = input("Accept these changes? [y/n]")
+    if x != 'y':
         exit()
-    client=MongoClient('localhost',27017)
-    with open("mongostring",'r') as mfile:
-        mstring=mfile.read()
+    with open("mongostring", 'r') as mfile:
+        mstring = mfile.read()
     client = MongoClient(mstring)
-    db=client.hk_data
-    collection=db.settings
+    db = client.hk_data
+    collection = db.settings
 
     collection.insert_one(settings)
     # print("WARNING: in testing mode. Nothing modified.")
-    #exit()
+    # exit()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     go()

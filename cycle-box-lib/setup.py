@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="zhklib-NanoExplorer", 
-    version="1.0.0",
+    version="1.0.1",
     author="Christopher Rooney",
     author_email="ctr44@cornell.edu",
     description="Library for interfacing with the Zeus 2 Cycle Box housekeeping program",
@@ -18,13 +18,10 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    entry_points={
-        'console_scripts': [
-            'zhk-live-plots = zhklib.live_plots',
-            'zhk-live-table = zhklib.live_table',
-            'zhk-settings = zhklib.settings_upload'
+    scripts= ['zhklib/live_plots.py',
+              'zhklib/live_table.py',
+              'zhklib/settings_upload.py'
         ],
-    },
     python_requires='>=3.6',
     include_package_data=True,
     install_requires=[

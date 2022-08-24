@@ -1,5 +1,5 @@
 
-from database import ThermometryWatcherThread
+from zhklib.database import ThermometryWatcherThread
 import tabulate
 import numpy as np
 
