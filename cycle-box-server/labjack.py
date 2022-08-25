@@ -58,6 +58,14 @@ class LabJackController(threading.Thread):
         #That was a bad idea. It means that we always start in servo mode
         #even if we don't want to.
 
+    def read_registers(self):
+        """ This untested command attempts to read the values of the current set point and ramp rate as well as 
+        the status of the servo/cycle relay"""
+        setpoint = self.device.readRegister(5002) * 20  #dac1
+        ramprate = self.device.readRegister(5000) * 2  #dac0
+        # if dio 14 is 1 we're in servo mode, but I don't know how to read it.
+        return setpoint, ramprate
+
     def update_dios(self):
         with self.sensorsLock:
             self.diosIn[14] = 1 if self.servoMode else 0  #convert boolean to number...
