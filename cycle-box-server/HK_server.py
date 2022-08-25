@@ -195,7 +195,6 @@ class LogicClass():
         # The autocycler only gets updated when it's running, so we have to detect the start of a new cycle here.
         # I.E. cycle finishes, user requests new cycle,
         onSameCycle = self.autoCycler.cycleID == settings['cycle']['cycle_ID']
-        magctrl_ramprate = settings["magnet"]["ramprate"]
         # If cycle is not armed, we must not follow this conditional branch.
         # If cycle is finished, we must not follow this branch unless a new cycle has been started. I.E. when finished is true but onsamecycle is not, the second
         # part of this conditional is true.
@@ -213,7 +212,7 @@ class LogicClass():
                 else:
                     # we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
                     current = CYCLE_MODE_SAFE_SET_POINT
-                    magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+                    ramprate = CYCLE_MODE_SAFE_RAMP_RATE
             else:
                 self.switch_servo_cycle(servoMode)
                 if self.lastAutoCycleStatus != status:
@@ -229,28 +228,26 @@ class LogicClass():
             else:
                 #we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
                 current = CYCLE_MODE_SAFE_SET_POINT
-                magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+                ramprate = CYCLE_MODE_SAFE_RAMP_RATE
         
         else:
             inCorrectMode = self.switch_servo_cycle(
                 settings['magnet']['servo_mode'])
             if inCorrectMode:
                 current = settings["magnet"]["setpoint"]
-                magctrl_ramprate = settings["magnet"]["ramprate"]
-                ramprate = settings["magnet"]["ramprate_a_per_h"]
+                ramprate = settings["magnet"]["ramprate"]
             else:
                 if self.lj.servoMode:
-                    magctrl_ramprate = SERVO_MODE_SAFE_RAMP_RATE
+                    ramprate = SERVO_MODE_SAFE_RAMP_RATE
                     current = SERVO_MODE_SAFE_SET_POINT
                 else:
-                    magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+                    ramprate = CYCLE_MODE_SAFE_RAMP_RATE
                     current = CYCLE_MODE_SAFE_SET_POINT
         self.magnet_ramper.want_speed = ramprate
         self.magnet_ramper.want_current = current
         # this could be improved. Right now it's a bit hacky
         # editing these member variables every time step
         new_current_set = self.magnet_ramper.update_magnet()
-        self.lj.currentRamprate = min(magctrl_ramprate,10)
         self.lj.currentSetpoint = new_current_set
 
     def update_temperatures(self, tempdict):

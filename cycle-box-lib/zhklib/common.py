@@ -12,8 +12,8 @@ def getGRTSuffix(n):
 # with current still in the magnet.
 
 
-CYCLE_MODE_SAFE_RAMP_RATE = 0
+CYCLE_MODE_SAFE_RAMP_RATE = 40  # 10 A in 15 minutes
 CYCLE_MODE_SAFE_SET_POINT = 0
-SERVO_MODE_SAFE_RAMP_RATE = 5
+SERVO_MODE_SAFE_RAMP_RATE = 36000  # 10 A in 1 minute
 SERVO_MODE_SAFE_SET_POINT = 0
 DISPLAY_IN_TZ = timezone(timedelta(hours=-3))

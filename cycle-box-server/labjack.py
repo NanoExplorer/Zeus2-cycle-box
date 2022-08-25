@@ -27,9 +27,8 @@ class LabJackController(threading.Thread):
         self.missed = 0
         self.keepGoing = False
 
-        #Use the setpoint and ramprate atomically.
+        #Use the setpoint atomically.
         self.currentSetpoint = 0
-        self.currentRamprate = 0
 
         #servoMode is atomic.
         self.servoMode = True
@@ -62,9 +61,8 @@ class LabJackController(threading.Thread):
         """ This untested command attempts to read the values of the current set point and ramp rate as well as 
         the status of the servo/cycle relay"""
         setpoint = self.device.readRegister(5002) * 20  #dac1
-        ramprate = self.device.readRegister(5000) * 2  #dac0
         # if dio 14 is 1 we're in servo mode, but I don't know how to read it.
-        return setpoint, ramprate
+        return setpoint
 
     def update_dios(self):
         with self.sensorsLock:
@@ -139,8 +137,9 @@ class LabJackController(threading.Thread):
                 if returnDict['missed'] > 0:
                     logging.debug(f"Missed {returnDict['missed']}")
                 #write the voltages to control magnet current and ramp rate
-                self.device.writeRegister(5002, self.currentSetpoint / 20)  #dac1
-                self.device.writeRegister(5000, self.currentRamprate / 2)  #dac0
+                raise RuntimeError("Need to provide current to voltage constant for magnet power!")
+                
+                self.device.writeRegister(5002, self.currentSetpoint)  #dac1
 
                 self.update_dios()
                 for i, state in enumerate(self.diosIn):
