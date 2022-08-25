@@ -2,7 +2,10 @@
 New housekeeping program written in Python for controlling and reading the Zeus2 thermometry
 
 # Usage
-This code runs on Python 3 and depends on the following packages:
+## Setup
+For most people, you will only need the "library," which allows viewing HK data and uploading settings. Please view its separate [README.md file](cycle-box-lib/README.md)
+
+The server code runs on Python 3 and depends on the following packages:
 * pymongo
 * dnspython
 * labjack and the exodriver (or windows equivalent, available from the labjack website, only required on the computer running HK_server.py)
@@ -11,25 +14,17 @@ This code runs on Python 3 and depends on the following packages:
 * numpy
 * matplotlib (for the live_plot script)
 
-Once these packages have been installed, plug the labjack into the computer that will be used for housekeeping and run HK_server.py.
+Unfortunately, it also depends on a python2 installation for controlling the motor boxes. Some code will need to be updated to point correctly to the python2 binary.
 
 Make sure that a file called "mongostring" is created in the same directory as the pytho files that includes the ip address, username and password to the mongodb database in the format `mongodb_srv://<USERNAME>:<PASSWORD>@<HOSTNAME>/options` I don't know the full story, but this is what I'm using now for an externally hosted MongoDB database. I will need to migrate back to a local database before APEX.
 
 Make sure the mongodb database is set up following the directions in mongo/MongoDB Notes.
 
+Once these packages have been installed and set up, plug the labjack into the computer that will be used for housekeeping and run HK_server.py.
+
 You will see output confirming that the U6 stream was set up and that the script is reading data. It will take about 20 seconds before you see output (depending on the content of the sensors/settling time setting).
 
 Remember that output is not displayed by the HK_server script itself.
-
-## viewing ZEUS-2 status.
-You do not need to have labjack or the labjack driver installed.
-Again, make sure you have the mongostring settings file installed, and then run live_tables.py or live_plots.py. These will update in realtime and inform you of the current state of the instrument. 
-
-There's still a ways to go on this. You can't see many of the digital channels or what settings are currently set.
-
-## Changing settings
-There are several presets available in the `presets` directory. One must simply run `settings_upload.py presets/the_preset_that_you_want.json`. Use `settings_upload.py --help` to see override options that will let you easily change the PID parameters, set temperature for PID loop, or manual current set point and ramp rate.
-
 
 # Internals
 
@@ -38,11 +33,11 @@ Most of the important logic is in `HK_server.py`. It launches several threads. O
 
 `database.py` includes a thread to watch for changes to a database and a thread that will upload changes to a database. Both use queues for communication since they're they're thread-safe. 
 
-The database we use is Mongodb. It is a unique database. Instead of storing data as tables, its native format is JSON (basically the same as a Python dictionary). 
+The database we use is Mongodb. It is a unique database: instead of storing data as tables, its native format is JSON (which is similar to a Python dictionary). 
 
 The computer connected to the labjack will run the Mongo database server, which will keep logs of all the history of temperatures and settings.
 
-`etherser.py` is a library used by `heatswitch_automatic.py` to allow communication with the motor box. 
+`etherser.py` is a library used by `heatswitch_automatic.py` to allow communication with the motor box. These two scripts have not been ported from Python 2 to Python 3, so at the moment both are needed.
 
 `labjack.py` contains the labjack communication thread. It reads in sensors in `stream` mode and sets the output digital and analog ports. *it still needs to read in the digital ports*.
 

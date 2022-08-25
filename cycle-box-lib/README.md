@@ -21,6 +21,7 @@ This package includes the following scripts:
 
 You will need a file called "mongostring" from Christopher. This contains the address of our server and the password in the format `mongodb_srv://<USERNAME>:<PASSWORD>@<HOSTNAME>/options`
 
+The file `easy_thermometry.ipynb` gives an example for interfacing with the server to extract sensor data.
 
 ## Changing settings
 There are several presets available in the `presets` directory. One must simply run `settings_upload.py presets/the_preset_that_you_want.json`. Use `settings_upload.py --help` to see override options that will let you easily change the PID parameters, set temperature for PID loop, or manual current set point and ramp rate.
