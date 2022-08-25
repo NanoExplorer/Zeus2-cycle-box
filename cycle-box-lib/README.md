@@ -2,7 +2,10 @@
 Library supporting new Zeus 2 Housekeeping routines
 
 # Usage
-This code runs on Python 3 and depends on the following packages:
+## Installation
+This code runs on Python 3. All of its dependencies should be installed automatically if you navigate to this folder and run `pip install -e .`
+
+Dependencies:
 * pymongo
 * dnspython
 * tabulate 
@@ -11,7 +14,7 @@ This code runs on Python 3 and depends on the following packages:
 * matplotlib 
 
 ## Scripts
-This package includes the following scripts: 
+This package includes the following scripts, which you can call from the command line if this pip package is installed: 
 
 * `zhk-live-plots` displays and maintains an up-to-date plot of instrument conditions
 * `zhk-live-table` displays a table of up-to-date temperature readings

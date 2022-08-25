@@ -6,15 +6,9 @@ New housekeeping program written in Python for controlling and reading the Zeus2
 For most people, you will only need the "library," which allows viewing HK data and uploading settings. Please view its separate [README.md file](cycle-box-lib/README.md)
 
 The server code runs on Python 3 and depends on the following packages:
-* pymongo
-* dnspython
+* the cycle box library pip package and its dependencies
 * labjack and the exodriver (or windows equivalent, available from the labjack website, only required on the computer running HK_server.py)
-* tabulate (for the live_table.py script)
-* scipy
-* numpy
-* matplotlib (for the live_plot script)
-
-Unfortunately, it also depends on a python2 installation for controlling the motor boxes. Some code will need to be updated to point correctly to the python2 binary.
+* Python2 for running the motor box control scripts.
 
 Make sure that a file called "mongostring" is created in the same directory as the pytho files that includes the ip address, username and password to the mongodb database in the format `mongodb_srv://<USERNAME>:<PASSWORD>@<HOSTNAME>/options` I don't know the full story, but this is what I'm using now for an externally hosted MongoDB database. I will need to migrate back to a local database before APEX.
 
