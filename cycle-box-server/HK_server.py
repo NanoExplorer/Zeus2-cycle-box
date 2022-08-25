@@ -10,7 +10,7 @@ from labjack import LabJackController
 from pid import PID
 from autocycle import AutoCycler
 from interpolators import Interpolators
-
+from ramprate import MagnetRamp
 from zhklib.common import getGRTSuffix, CYCLE_MODE_SAFE_SET_POINT, CYCLE_MODE_SAFE_RAMP_RATE, SERVO_MODE_SAFE_SET_POINT, SERVO_MODE_SAFE_RAMP_RATE
 
 QUEUE_TIMEOUT = 30  #Change to None in production.
@@ -71,6 +71,7 @@ class LogicClass():
         self.lastAutoCycleStatus = {}
         self.settings.start()
         self.interp = Interpolators()
+        self.magnet_ramper = MagnetRamp()
         # The first element in these is whether to ignore that card. (boolean)
         # The second element is whether that card should be reading in fast mode. (boolean)
         # The third element is the last time that card's mux was changed. (datetime) (ignored for magnet sensors)
@@ -127,8 +128,8 @@ class LogicClass():
         # that contains manual magnet current and ramprate info, then finish the demag manually.
         with self.settings.settingsLock:
             servoMode = self.settings.settings["magnet"]["servo_mode"]
-            current = settings["magnet"]["setpoint"]
-            ramprate = settings["magnet"]["ramprate"]
+            current = self.settings["magnet"]["setpoint"]
+            ramprate = self.settings["magnet"]["ramprate"]
             pids = self.settings.settings["pid"]
             self.pid = PID(P=pids['p'],
                            I=pids['i'],
@@ -137,6 +138,9 @@ class LogicClass():
             self.pid.setWindup(pids['max_current'])
             self.pid.SetPoint = pids['temp_set_point']
 
+        self.magnet_ramper.lastSP = current
+        self.magnet_ramper.want_current = current
+        self.magnet_ramper.want_speed = 0
         self.lj.servoMode = servoMode  #atomic operation doesn't need lock
         self.lj.currentSetpoint = current
         self.lj.currentRamprate = ramprate
@@ -147,8 +151,8 @@ class LogicClass():
 
     def run(self):
         with self.settings.settingsLock:
-            self.next_sensor(
-                self.settings.settings)  #set up sensors for the first time
+            self.next_sensor(self.settings.settings)  
+            #set up sensors for the first time
         while self.keepGoing:
             #print("updating")
             self.update()
@@ -191,7 +195,7 @@ class LogicClass():
         # The autocycler only gets updated when it's running, so we have to detect the start of a new cycle here.
         # I.E. cycle finishes, user requests new cycle,
         onSameCycle = self.autoCycler.cycleID == settings['cycle']['cycle_ID']
-
+        magctrl_ramprate = settings["magnet"]["ramprate"]
         # If cycle is not armed, we must not follow this conditional branch.
         # If cycle is finished, we must not follow this branch unless a new cycle has been started. I.E. when finished is true but onsamecycle is not, the second
         # part of this conditional is true.
@@ -199,8 +203,7 @@ class LogicClass():
             current, ramprate, servoMode, status = self.autoCycler.update(
                 settings["cycle"], self.lj.servoMode)
             # Allow PID to continue running until the moment the auto cycle needs to begin.
-            if settings["magnet"][
-                    "usePID"] and not self.autoCycler.shouldBeRunning:
+            if settings["magnet"]["usePID"] and not self.autoCycler.shouldBeRunning:
                 inCorrectMode = self.switch_servo_cycle(True)
                 # Make sure we're in servo mode before committing PID step
                 assert (temperature is not None)
@@ -210,11 +213,13 @@ class LogicClass():
                 else:
                     # we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
                     current = CYCLE_MODE_SAFE_SET_POINT
+                    magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
             else:
                 self.switch_servo_cycle(servoMode)
                 if self.lastAutoCycleStatus != status:
                     self.lastAutoCycleStatus = status
                     self.update_temperatures({'auto_cycle_status': status})
+        
         elif settings["magnet"]["usePID"]:
             inCorrectMode = self.switch_servo_cycle(True)
             assert (temperature is not None)
@@ -224,23 +229,29 @@ class LogicClass():
             else:
                 #we're in cycle mode somehow and we need to make it safely to servo mode before continuing.
                 current = CYCLE_MODE_SAFE_SET_POINT
-                ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+                magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+        
         else:
             inCorrectMode = self.switch_servo_cycle(
                 settings['magnet']['servo_mode'])
             if inCorrectMode:
                 current = settings["magnet"]["setpoint"]
-                ramprate = settings["magnet"]["ramprate"]
+                magctrl_ramprate = settings["magnet"]["ramprate"]
+                ramprate = settings["magnet"]["ramprate_a_per_h"]
             else:
                 if self.lj.servoMode:
-                    ramprate = SERVO_MODE_SAFE_RAMP_RATE
+                    magctrl_ramprate = SERVO_MODE_SAFE_RAMP_RATE
                     current = SERVO_MODE_SAFE_SET_POINT
                 else:
-                    ramprate = CYCLE_MODE_SAFE_RAMP_RATE
+                    magctrl_ramprate = CYCLE_MODE_SAFE_RAMP_RATE
                     current = CYCLE_MODE_SAFE_SET_POINT
-
-        self.lj.currentRamprate = ramprate
-        self.lj.currentSetpoint = current
+        self.magnet_ramper.want_speed = ramprate
+        self.magnet_ramper.want_current = current
+        # this could be improved. Right now it's a bit hacky
+        # editing these member variables every time step
+        new_current_set = self.magnet_ramper.update_magnet()
+        self.lj.currentRamprate = min(magctrl_ramprate,10)
+        self.lj.currentSetpoint = new_current_set
 
     def update_temperatures(self, tempdict):
         #I guess this is here in case you

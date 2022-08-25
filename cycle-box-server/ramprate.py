@@ -9,7 +9,7 @@ class MagnetRamp():
         self.want_speed = 0  # *actually* in amps per hour
         self.ramp_rate_out = 0  # Ramp rate to give to the magnet.
 
-    def update_magnet(self, current_now):
+    def update_magnet(self):
         timedelta = time.time()-self.lastTime
         self.lastTime = time.time()
 

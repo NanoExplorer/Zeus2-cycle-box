@@ -4,8 +4,8 @@
         "do_hsw_toggle": true, #whether to open and close the heat switch at some point during cycle
         "duration": 7, #duration hours
         "heatswitch_delay": 3, #time between starting ramp and doing hsw toggle
-        "ramprate_down": 0.03, 
-        "ramprate_up": 0.3, 
+        "ramprate_down": 0.03, # Now in A/Hr!
+        "ramprate_up": 0.3, # Now in A/Hr
         "setpoint": 9.2, 
         "start_time": "2014-03-12T13:37:27-05:00", #when to start auto cycle. in python would be a datetime object
         "cycle_ID": 1 #a unique number identifying this cycle (UI SERVER should do something like cycle_id+=1 when a new cycle is triggered.)
@@ -24,7 +24,7 @@
         "p": 320, 
         "temp_set_point": 0.13,
         "i_windup_guard":20,
-        "ramp_rate":9,
+        "ramp_rate":9, # Now in A/Hr!
         "debug":false #optional. If present and true will send *lots* of pid data to the server. like, the P, I, and D terms, requested magnet current, and read out temperature at every pid update step.
     }, 
     "sensors": {
