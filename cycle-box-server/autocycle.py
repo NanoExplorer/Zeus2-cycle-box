@@ -52,10 +52,10 @@ class AutoCycler():
         servoMode = False
         # logging.debug((settings['start_time']-now))
         if servoModeIn and self.stage < 3:
-            #If we're in servo mode, and the detector isn't really cold yet,
+            # If we're in servo mode, and the detector isn't really cold yet,
             # sets the ramp rate and set point of current
-            #to safe values and asks for cycle mode to be activated.
-            #This is kind of a "stage -1"
+            # to safe values and asks for cycle mode to be activated.
+            # This is kind of a "stage -1"
             ramprate = SERVO_MODE_SAFE_RAMP_RATE
             current = SERVO_MODE_SAFE_SET_POINT
 
@@ -80,10 +80,10 @@ class AutoCycler():
         elif self.stage == 1:
             #going into self.stage 1 we've already checked that the heat switch worked successfully.
             ramprate = settings['ramprate_up']
-            #TODO: add check for high temperature. Maybe run a PID on 5 K or something?
-            #Note: heatswitch_delay has to be < duration even when do_hsw_toggle is false.
-            #Shouldn't be much of an issue, because do toggle will be true most of the time, and the
-            #delay should not be changed even when do_toggle is.
+            # TODO: add check for high temperature. Maybe run a PID on 5 K or something?
+            # Note: heatswitch_delay has to be < duration even when do_hsw_toggle is false.
+            # Shouldn't be much of an issue, because do toggle will be true most of the time, and the
+            # delay should not be changed even when do_toggle is.
             if now > settings['start_time'] + timedelta(
                     hours=settings['heatswitch_delay']):
                 if settings['do_hsw_toggle']:
@@ -99,12 +99,12 @@ class AutoCycler():
                         "Hsw toggle complete. Autocycle entering stage 2 - wait for rampdown."
                     )
                     #self.hswRunning = False
-            #This has (may have?) an edge case: (DOUBLE CHECK - It looks like this might be fixed.)
-            #if the heat switch malfunctions while toggling,
-            #then it will drain all the current after doing the toggle.
-            #That *shouldn't* happen. but you know it will. Someday.
-            #ideally you'd freeze the current where it is, and exit
-            #Looks to me like we freeze in stage 1 unless there's no hsw error and the hsw is ready...
+            # This has (may have?) an edge case: (DOUBLE CHECK - It looks like this might be fixed.)
+            # if the heat switch malfunctions while toggling,
+            # then it will drain all the current after doing the toggle.
+            # That *shouldn't* happen. but you know it will. Someday.
+            # ideally you'd freeze the current where it is, and exit
+            # Looks to me like we freeze in stage 1 unless there's no hsw error and the hsw is ready...
 
         elif self.stage == 2:
             ramprate = settings['ramprate_up']
@@ -186,11 +186,11 @@ class HeatSwitch():
     def _runHsw(self, command, override):
         if self.ready or override:
             self.ready = False
-            #I could have imported their python code and tried to stuff it into a thread,
-            #but overall I actually think this is safer. I also think they already use
-            #some threads, so I'm scared to try to integrate it.
-            #IN ADDITION I just migrated all this code to python3, and no way am I going
-            #to try that with the automatic heatswitch code.
+            # I could have imported their python code and tried to stuff it into a thread,
+            # but overall I actually think this is safer. I also think they already use
+            # some threads, so I'm scared to try to integrate it.
+            # IN ADDITION I just migrated all this code to python3, and no way am I going
+            # to try that with the automatic heatswitch code.
             self.pobject = subprocess.Popen([
                 'C:\\Users\\mce\\Anaconda3\\envs\\heatswitch\\python',
                 'heatswitch_automatic.py', command
@@ -213,6 +213,6 @@ class HeatSwitch():
     def toggleHsw(self, override=False):
         self.closeHsw(override=override)
         self.command = self.toggleHsw
-        #if the heat switch isn't open (i.e. at hard limit), the closehsw command
-        #automatically opens the heat switch before closing it. So it
-        #does the same thing as what I think of as toggling.
+        # if the heat switch isn't open (i.e. at hard limit), the closehsw command
+        # automatically opens the heat switch before closing it. So it
+        # does the same thing as what I think of as toggling.
