@@ -24,7 +24,7 @@ This package includes the following scripts, which you can call from the command
 
 You will need a file called "mongostring" from Christopher. This contains the address of our server and the password in the format `mongodb_srv://<USERNAME>:<PASSWORD>@<HOSTNAME>/options`
 
-Install this file by putting it into a directory called .zeus in your 
+Install this file by putting it into a directory called `.zeus` in your 
 home folder or by running `zhk-register-mongo /path/to/your/mongo/file`.
 
 The file `easy_thermometry.ipynb` gives an example for interfacing with the server to extract sensor data.
