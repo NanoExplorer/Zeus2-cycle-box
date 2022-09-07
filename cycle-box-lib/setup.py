@@ -18,10 +18,19 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    scripts= ['zhklib/live_plots.py',
-              'zhklib/live_table.py',
-              'zhklib/settings_upload.py'
+
+    scripts=[
+        'zhklib/live_plots.py'
+    ],
+
+    entry_points={
+        'console_scripts': [
+            'zhk-settings = zhklib.settings_upload:go',
+            'zhk-live-table = zhklib.live_table:main',
+            'zhk-live-plots = zhklib.live_plots:main',
+            'zhk-register-mongo = zhklib.mongostring_register:main'
         ],
+    },
     python_requires='>=3.6',
     include_package_data=True,
     install_requires=[
