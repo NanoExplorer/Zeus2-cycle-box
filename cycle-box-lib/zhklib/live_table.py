@@ -1,4 +1,5 @@
-
+import importlib.resources as res
+from zhklib import data
 from zhklib.database import ThermometryWatcherThread
 import tabulate
 import numpy as np
@@ -6,10 +7,11 @@ import numpy as np
 
 class CurrentStatus():
     def __init__(self):
-        self.sensors_id = np.genfromtxt('calibration/Sensor_ID.txt',
-                                        skip_header=2,
-                                        delimiter='\t',
-                                        dtype=str)
+        with res.open_text(data,"Sensor_ID.txt") as idfile:
+            self.sensors_id = np.genfromtxt(idfile,
+                                            skip_header=2,
+                                            delimiter='\t',
+                                            dtype=str)
         self.sensors_temp = [0 for x in range(4+8+8+2)]
         self.card_array_offsets={'2WIRE':12,
                 '4WIRE':8,

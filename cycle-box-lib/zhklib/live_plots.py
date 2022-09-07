@@ -8,7 +8,8 @@ from zhklib.database import ThermometryWatcherThread
 import queue
 import argparse
 from zhklib.common import DISPLAY_IN_TZ
-
+import importlib.resources as res
+from zhklib import data
 
 class RollingNumpyArrays():
     def __init__(self, size):
@@ -59,11 +60,11 @@ class animatedplot():
         # exits, I think.
         self.twt.setDaemon(True)
         self.twt.start()
-
-        self.sensors_id = np.genfromtxt('calibration/Sensor_ID.txt',
-                                        skip_header=2,
-                                        delimiter='\t',
-                                        dtype=str)
+        with res.open_text(data,"Sensor_ID.txt") as idfile:
+            self.sensors_id = np.genfromtxt(idfile,
+                                            skip_header=2,
+                                            delimiter='\t',
+                                            dtype=str)
         self.sensor_names = self.sensors_id[:, 1]
         self.sensor_names = np.append(self.sensor_names, ["Current (A)", "Voltage (V)"])
         self.sensor_arrays = [RollingNumpyArrays(size) for i in self.sensor_names]
@@ -178,7 +179,7 @@ class animatedplot():
 
     def update(self, frame):
         self.process_queue()
-        for ln,data in zip(self.lns, self.sensor_arrays):
+        for ln, data in zip(self.lns, self.sensor_arrays):
             if ln is not None:
                 ln.set_data(data.time, data.value)
         self.set_min_max()
@@ -189,13 +190,17 @@ class animatedplot():
         return self.lns[0],
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="view Zeus2 thermometry data in graphical plot form")
     parser.add_argument('-s', '--servo', type=int, nargs='+', help="indicate you're in servo mode. Takes 1 integer argument: the sensor(s) you're reading fast")
     parser.add_argument('-n', '--numpts', type=int, help="Number of points to display on plot. Default 100", default=100)
     args = parser.parse_args()
     if args.servo is not None:
         print("in servo mode")
-        a = animatedplot(int(args.numpts*3/10), servo=args.servo)
+        animatedplot(int(args.numpts*3/10), servo=args.servo)
     else:
-        a = animatedplot(args.numpts)
+        animatedplot(args.numpts)
+
+
+if __name__ == "__main__":
+    main()

@@ -6,7 +6,7 @@ import argparse
 import copy
 from zhklib import database
 import sys
-from zhklib.common import DISPLAY_IN_TZ
+from zhklib.common import DISPLAY_IN_TZ, CONFIG_FOLDER
 
 
 def get_cmdline_args():
@@ -102,7 +102,7 @@ def go():
     
     jstr=print_settings(settings)
 
-    with open('presets/lastsettings.json','w') as outfile:
+    with open(CONFIG_FOLDER+'lastsettings.json','w') as outfile:
         outfile.write(jstr)
 
 
@@ -224,8 +224,7 @@ def write_settings(settings, onlinesettings):
     x = input("Accept these changes? [y/n]")
     if x != 'y':
         exit()
-    with open("mongostring", 'r') as mfile:
-        mstring = mfile.read()
+    mstring = database.read_mongostring()
     client = MongoClient(mstring)
     db = client.hk_data
     collection = db.settings

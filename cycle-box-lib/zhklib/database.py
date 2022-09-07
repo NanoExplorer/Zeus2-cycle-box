@@ -6,13 +6,19 @@ from datetime import datetime, timezone
 import logging
 import time
 from bson.codec_options import CodecOptions
+from zhklib.common import CONFIG_FOLDER
+
+
+def read_mongostring():
+    with open(CONFIG_FOLDER + "mongostring", 'r') as mfile:
+        mstring = mfile.read()
+    return mstring
 
 
 class SettingsWatcherThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        with open("mongostring", 'r') as mfile:
-            mstring = mfile.read()
+        mstring = read_mongostring()
         self.client = MongoClient(mstring)
         self.db = self.client.hk_data
         options = CodecOptions(tz_aware=True)
@@ -73,8 +79,7 @@ class DatabaseUploaderThread(threading.Thread):
     """
     def __init__(self):
         threading.Thread.__init__(self)
-        with open("mongostring", 'r') as mfile:
-            mstring = mfile.read()
+        mstring = read_mongostring()
         self.client = MongoClient(mstring)
         self.db = self.client.hk_data
         options = CodecOptions(tz_aware=True)
@@ -111,8 +116,7 @@ class ThermometryWatcherThread(threading.Thread):
 
         """
         threading.Thread.__init__(self)
-        with open("mongostring", 'r') as mfile:
-            mstring = mfile.read()
+        mstring = read_mongostring()
         client = MongoClient(mstring)
         self.db = client.hk_data
         self.newdata = queue.Queue()
@@ -138,7 +142,7 @@ class ThermometryWatcherThread(threading.Thread):
 
 class SettingsHistory():
     def __init__(self,
-                 mongostring="mongostring",
+                 mongostring=CONFIG_FOLDER + "mongostring",
                  start_date=None,
                  end_date=None,
                  query=None):
@@ -175,7 +179,7 @@ class EasyThermometry():
                  start_date=None,
                  end_date=None,
                  want_sensors='all',
-                 mongostring="mongostring"):
+                 mongostring=CONFIG_FOLDER+"mongostring"):
         """Warning:
         start_date, end_date, and want_sensors are works in progress.
         """
