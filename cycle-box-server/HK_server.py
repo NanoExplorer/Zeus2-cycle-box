@@ -127,10 +127,11 @@ class LogicClass():
         # Workaround: If this program crashes during an auto cycle, you will have to upload a new document to the settings
         # that contains manual magnet current and ramprate info, then finish the demag manually.
         with self.settings.settingsLock:
-            servoMode = self.settings.settings["magnet"]["servo_mode"]
-            current = self.settings["magnet"]["setpoint"]
-            ramprate = self.settings["magnet"]["ramprate"]
-            pids = self.settings.settings["pid"]
+            settingsdict = self.settings.settings
+            servoMode = settingsdict["magnet"]["servo_mode"]
+            current = settingsdict["magnet"]["setpoint"]
+            ramprate = settingsdict["magnet"]["ramprate"]
+            pids = settingsdict["pid"]
             self.pid = PID(P=pids['p'],
                            I=pids['i'],
                            D=pids['d'],
