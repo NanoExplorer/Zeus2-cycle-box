@@ -16,12 +16,15 @@ Right now the cluster is configured to run on localhost addresses. If one cluste
  1. edit mongod.cfg on member machine. This will be in program files\mongodb\server\4.2\bin on windows and /etc/mongodb.conf on linux. 
     Make it contain the following: a port like 46134 that is different from other machines
     bindip: 127.0.0.1,0.0.0.0 lets it communicate with other cluster members, and also clients like settings uploaders on the wider lan
-    security authorization enabled
-    keyFile: path to keyfile copied from a different member server
+    security:
+         authorization: "enabled"
+         keyFile: path to keyfile copied from a different member server
     replication: 
        replSetName: rs0
 2.  start mongod
 3.  on the primary use rs.add( { host: "hostname:port"} )
+
+current members: hkpc (46132) z2be (46135)
 
 Now that I know how to only forward certain traffic to a wireguard VPN, (i.e., set the client's AllowedIPs to only the local subnets, in this case 10.42. dang it this still doesn't work because each server can only have 1 ip address, and it will be the 10.42.97 one so all traffic will have to bounce off the server)
 
