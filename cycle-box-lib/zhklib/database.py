@@ -220,7 +220,7 @@ class EasyThermometry():
             for k in ['2WIRE', '4WIRE', 'GRT0-3', 'GRT4-7', "Voltage", "Current"]:
                 try:
                     v = doc[k]
-                    self.process_sensor(k, v[0], v[1], doc['timestamp'])
+                    self.process_sensor(k, v[0], v[1], doc['timestamp'].replace(tzinfo=timezone.utc))
                 except KeyError:
                     pass
 
@@ -233,4 +233,4 @@ class EasyThermometry():
             card = "GRT"
         elif card == "GRT4-7":
             card = "GRT"
-        self.sensors[card][num].append((time.timestamp(), temperature))
+        self.sensors[card][num].append((time, temperature))
